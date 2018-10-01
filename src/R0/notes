@@ -1,0 +1,3 @@
+chose to have Let require a Var object for its first contstructor and not have an additional "program"
+tag at the beginning. this is because doing that stuff doesn't add to my learning and just makes
+more verbose programs which i want to avoid in the already relatively verbose java language.
