@@ -10,5 +10,14 @@ package X0;
  * @author david
  */
 public class X0retq implements X0Instr{
+    private X0Arg x;
+
+    public X0retq(X0Arg x) {
+        this.x = x;
+    }
+
+    public X0Arg getX() {
+        return x;
+    }
     
 }

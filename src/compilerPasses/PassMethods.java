@@ -11,7 +11,7 @@ import static R0.ConciseConstructors.nAdd;
 import static R0.ConciseConstructors.nLet;
 import static R0.ConciseConstructors.nNeg;
 import static R0.ConciseConstructors.nVar;
-import X0.X0Program;
+import X0.*;
 import X1.*;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
@@ -192,10 +192,60 @@ public class PassMethods {
         instrs.add( new X1retq(ret));
         return new X1Program(vars, instrs, ret);
     }
-    public static X0Program assign() {
-        //
+    public static X0Program assign(X1Program p) {
+        
+        List <X1Instr> origInstrs = p.getInstrList();
+        List <X1Var> vars = p.getVarList();
+        //don't need to make a map because u can just
+        //truncate the string after the _ and then u got the number
+        
+        /*
+        ((structure):
+        sub 8*numVars from rsp
+        (translate original instrs except for last return)
+        mov "arg" into rax
+        add 8*numVars to rsp to clean up the stack
+        retq rax
+        */
+        List <X0Instr> newInstrs = new ArrayList<>();
+        newInstrs.add(new X0subq(new X0Reg("rsp"), new X0Int(numUniqueVars*8)));
+        for(X1Instr cur: origInstrs) {
+            if(cur instanceof X1addq) {
+                
+                newInstrs.add(new X0addq(X1toX0(((X1addq) cur).getA()), 
+                        X1toX0(((X1addq) cur).getB())));
+            } else if(cur instanceof X1callq) {
+                newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
+            } else if(cur instanceof X1movq) {
+                newInstrs.add(new X0movq(X1toX0(((X1movq) cur).getA()), 
+                        X1toX0(((X1movq) cur).getB())));
+            } else if(cur instanceof X1retq) {
+                newInstrs.add(new X0retq(X1toX0(((X1retq) cur).getX())));
+            } else if(cur instanceof X1negq) {
+                newInstrs.add(new X0negq(X1toX0(((X1negq) cur).getX())));
+            } 
+        }
+        
+        //then convert X1Instrs to X0Instrs
+        return new X0Program(newInstrs);
+    }
+    
+    public static X0Arg X1toX0(X1Arg a) {
+        if(a instanceof X1Int) {
+            return new X0Int(((X1Int) a).getVal());
+        } else if(a instanceof X1Var) {
+            String [] splitName = ((X1Var) a).getName().split("_");
+            int len = splitName.length;
+            int offset = Integer.getInteger(splitName[len-1]);
+            return new X0RegWithOffset("rsp", offset*8);
+        } else if(a instanceof X1Reg) {
+            //in the previous step (at least in first iteration), 
+            //the only register used is rax
+            return new X0Reg("rax");
+        }
         return null;
     }
+    
     public static X0Program fix() {
         return null;
     }

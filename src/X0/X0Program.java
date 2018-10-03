@@ -14,20 +14,14 @@ import java.util.List;
  * @author david
  */
 public class X0Program {
-    private List <X1Var> varList;
-    private List<X1Instr> instrList;
+    private List<X0Instr> instrList;
 
-    public X0Program(List<X1Var> varList, List<X1Instr> instrList) {
-        this.varList = varList;
+    public X0Program(List<X0Instr> instrList) {
         this.instrList = instrList;
     }
 
-    public List<X1Instr> getInstrList() {
+    public List<X0Instr> getInstrList() {
         return instrList;
-    }
-
-    public List<X1Var> getVarList() {
-        return varList;
     }
     
     

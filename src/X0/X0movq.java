@@ -10,5 +10,19 @@ package X0;
  * @author david
  */
 public class X0movq implements X0Instr{
-    
+    private X0Arg a;
+    private X0Arg b;
+
+    public X0movq(X0Arg a, X0Arg b) {
+        this.a = a;
+        this.b = b;
+    }
+
+    public X0Arg getA() {
+        return a;
+    }
+
+    public X0Arg getB() {
+        return b;
+    }
 }

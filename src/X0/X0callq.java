@@ -10,5 +10,13 @@ package X0;
  * @author david
  */
 public class X0callq implements X0Instr{
-    
+    private String label;
+
+    public X0callq(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 }
