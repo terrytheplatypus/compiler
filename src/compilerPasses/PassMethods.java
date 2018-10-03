@@ -11,6 +11,7 @@ import static R0.ConciseConstructors.nAdd;
 import static R0.ConciseConstructors.nLet;
 import static R0.ConciseConstructors.nNeg;
 import static R0.ConciseConstructors.nVar;
+import X0.X0Program;
 import X1.*;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
@@ -190,5 +191,18 @@ public class PassMethods {
         X1Arg ret = C0ToX1Arg(p.getReturnArg());
         instrs.add( new X1retq(ret));
         return new X1Program(vars, instrs, ret);
+    }
+    public static X0Program assign() {
+        //
+        return null;
+    }
+    public static X0Program fix() {
+        return null;
+    }
+    public static String X0ToString(){
+        
+        //first going to try to compile for cygwin
+        
+        return null;
     }
 }

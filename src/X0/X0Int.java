@@ -9,6 +9,15 @@ package X0;
  *
  * @author david
  */
-public class X0Int {
+public class X0Int implements X0Arg {
+    private int val;
+
+    public X0Int(int val) {
+        this.val = val;
+    }
+
+    public int getVal() {
+        return val;
+    }
     
 }

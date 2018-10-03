@@ -9,6 +9,6 @@ package X0;
  *
  * @author david
  */
-public class X0retq {
+public class X0retq implements X0Instr{
     
 }

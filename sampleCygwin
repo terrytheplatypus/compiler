@@ -1,0 +1,22 @@
+.extern puts
+.global main
+.text
+main:
+    push %rbp
+    mov %rsp, %rbp         /* Setup stack frame */
+    subq $0x20, %rsp       /* Allocate space for 32 bytes shadow space 
+                              no additional bytes to align stack are needed
+                              since return address and rbp on stack maintain
+                              16 byte alignment */ 
+    movabsq $msg, %rcx     /* Loads a 64 bit register with a label's address
+                              Windows 64-bit calling convention
+                              passes param 1 in rcx */
+    call puts
+    xor %rax, %rax         /* Return value */
+    mov %rbp, %rsp
+    pop %rbp               /* Remove current stackframe */
+    ret
+
+.data
+msg:
+    .asciz "hello world"   /* Remember to zero terminate the string */

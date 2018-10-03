@@ -9,6 +9,6 @@ package X0;
  *
  * @author david
  */
-public class X0pushq {
+public class X0pushq implements X0Instr{
     
 }
