@@ -5,6 +5,17 @@
  */
 package compilerPasses;
 
+import X1.X1negq;
+import X1.X1Instr;
+import X1.X1callq;
+import X1.X1movq;
+import X1.X1Var;
+import X1.X1retq;
+import X1.X1Arg;
+import X1.X1addq;
+import X1.X1Reg;
+import X1.X1Int;
+import X1.X1Program;
 import C0.*;
 import R0.*;
 import static R0.ConciseConstructors.nAdd;
@@ -12,7 +23,6 @@ import static R0.ConciseConstructors.nLet;
 import static R0.ConciseConstructors.nNeg;
 import static R0.ConciseConstructors.nVar;
 import X0.*;
-import X1.*;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
 import java.util.HashMap;
