@@ -246,13 +246,84 @@ public class PassMethods {
         return null;
     }
     
-    public static X0Program fix() {
-        return null;
+    public static X0Program fix(X0Program p) {
+        List <X0Instr> instrs = p.getInstrList();
+        List <X0Instr> newInstrs  = new ArrayList<>();
+        for(X0Instr c:instrs) {
+            //if current instr has 2 args, check that they're valid
+            //if not, split them up
+            //right now only addq and movq need to be checked
+            if(c instanceof X0addq) {
+               X0addq m = (X0addq) c;
+                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset) {
+                    newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
+                    newInstrs.add(new X0addq(new X0Reg("rax"),m.getB() ));
+                } else newInstrs.add(c);
+            } else if(c instanceof X0movq) {
+                X0movq m = (X0movq) c;
+                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset) {
+                    newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
+                    newInstrs.add(new X0movq(new X0Reg("rax"),m.getB() ));
+                } else newInstrs.add(c);
+            } else newInstrs.add(c);
+        }
+        return new X0Program(newInstrs);
     }
-    public static String X0ToString(){
+    
+    public static X0Program compile(R0Program p) {
+        return fix(assign(select(flatten(uniquify(p)))));
+    }
+    
+    public static String printX0(X0Program p){
         
+        String prog = "";
         //first going to try to compile for cygwin
         
+        
+        //set up externs (readint, printint)
+        
+        prog += ".extern readint\n";
+        prog += ".extern printint\n";
+        prog += ".extern readint\n";
+        prog += ".global main\n.text";
+        
+        //set up stack fram and give extra space
+        prog += "push %rbp\n";
+        prog += "mov %rsp, %rbp\n";
+        prog += "subq $0x20, %rsp\n";
+        
+        for(X0Instr i:p.getInstrList()) {
+            if(i instanceof X0addq) {
+                X0addq i2 = (X0addq) i;
+                prog += "addq " + printX0Arg(i2.getA()) 
+                        +" " + printX0Arg(i2.getB());
+            } else if(i instanceof X0movq) {
+                X0movq i2 = (X0movq) i;
+                prog += "movq " + printX0Arg(i2.getA()) 
+                        +" " + printX0Arg(i2.getB());
+            } else if(i instanceof X0negq) {
+                X0negq i2 = (X0negq) i;
+                prog += "negq " + printX0Arg(i2.getX());
+            } else if(i instanceof X0retq) {
+                X0retq i2 = (X0retq) i;
+                prog += "retq" + printX0Arg(i2.getX());
+            } else if(i instanceof X0callq) {
+                X0callq i2 = (X0callq) i;
+                prog += "callq " + i2.getLabel();
+            }
+        }
+        
+        return prog;
+    }
+    static public String printX0Arg(X0Arg z) {
+        if(z instanceof X0Int) {
+            return String.valueOf(((X0Int) z).getVal());
+        } else if (z instanceof X0Reg) {
+            return "%"+ ((X0Reg) z).getName();
+        } else if (z instanceof X0RegWithOffset) {
+            return "("+((X0RegWithOffset) z).getName()+","+
+                    String.valueOf(((X0RegWithOffset) z).getOffset()) +")";
+        }
         return null;
     }
 }
