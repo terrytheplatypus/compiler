@@ -208,7 +208,7 @@ public class PassMethods {
         retq rax
         */
         List <X0Instr> newInstrs = new ArrayList<>();
-        newInstrs.add(new X0subq(new X0Reg("rsp"), new X0Int(numUniqueVars*8)));
+        newInstrs.add(new X0subq(new X0Int(numUniqueVars*8), new X0Reg("rsp") ));
         for(X1Instr cur: origInstrs) {
             if(cur instanceof X1addq) {
                 
@@ -220,6 +220,8 @@ public class PassMethods {
                 newInstrs.add(new X0movq(X1toX0(((X1movq) cur).getA()), 
                         X1toX0(((X1movq) cur).getB())));
             } else if(cur instanceof X1retq) {
+                //the next instruction is added to clean up the stack
+                newInstrs.add(new X0addq(new X0Int(numUniqueVars*8), new X0Reg("rsp") ));
                 newInstrs.add(new X0retq(X1toX0(((X1retq) cur).getX())));
             } else if(cur instanceof X1negq) {
                 newInstrs.add(new X0negq(X1toX0(((X1negq) cur).getX())));
@@ -236,7 +238,7 @@ public class PassMethods {
         } else if(a instanceof X1Var) {
             String [] splitName = ((X1Var) a).getName().split("_");
             int len = splitName.length;
-            int offset = Integer.getInteger(splitName[len-1]);
+            int offset = Integer.valueOf(splitName[len-1]);
             return new X0RegWithOffset("rsp", offset*8);
         } else if(a instanceof X1Reg) {
             //in the previous step (at least in first iteration), 
@@ -285,44 +287,63 @@ public class PassMethods {
         prog += ".extern readint\n";
         prog += ".extern printint\n";
         prog += ".extern readint\n";
-        prog += ".global main\n.text";
+        prog += ".global main\n.text\n";
         
         //set up stack fram and give extra space
         prog += "push %rbp\n";
         prog += "mov %rsp, %rbp\n";
         prog += "subq $0x20, %rsp\n";
+        prog += "#end initialization\n";
         
+        prog+="main:\n";
         for(X0Instr i:p.getInstrList()) {
             if(i instanceof X0addq) {
                 X0addq i2 = (X0addq) i;
                 prog += "addq " + printX0Arg(i2.getA()) 
-                        +" " + printX0Arg(i2.getB());
+                        +"," + printX0Arg(i2.getB());
             } else if(i instanceof X0movq) {
                 X0movq i2 = (X0movq) i;
                 prog += "movq " + printX0Arg(i2.getA()) 
-                        +" " + printX0Arg(i2.getB());
+                        +"," + printX0Arg(i2.getB());
             } else if(i instanceof X0negq) {
                 X0negq i2 = (X0negq) i;
                 prog += "negq " + printX0Arg(i2.getX());
             } else if(i instanceof X0retq) {
+                //maybe do extra stuff to clean up stack
+                
+                
                 X0retq i2 = (X0retq) i;
-                prog += "retq" + printX0Arg(i2.getX());
+                //prog += "retq" + printX0Arg(i2.getX());
+                prog+= "movq " + printX0Arg(i2.getX()) +", %rax\n";
+                prog+="movabsq (%rax) ,%rcx\n";
+                prog+= "callq printint\n";
+                prog+="pop %rbp\n#getting rid of the stack frame\n";
+                prog+="retq";
+                
             } else if(i instanceof X0callq) {
                 X0callq i2 = (X0callq) i;
                 prog += "callq " + i2.getLabel();
+            } else if(i instanceof X0subq) {
+                X0subq i2 = (X0subq) i;
+                prog += "subq " + printX0Arg(i2.getA()) 
+                        +"," + printX0Arg(i2.getB());
             }
+            prog+="\n";
         }
         
         return prog;
     }
     static public String printX0Arg(X0Arg z) {
         if(z instanceof X0Int) {
-            return String.valueOf(((X0Int) z).getVal());
+            return "$"+String.valueOf(((X0Int) z).getVal());
         } else if (z instanceof X0Reg) {
             return "%"+ ((X0Reg) z).getName();
         } else if (z instanceof X0RegWithOffset) {
-            return "("+((X0RegWithOffset) z).getName()+","+
-                    String.valueOf(((X0RegWithOffset) z).getOffset()) +")";
+            
+            String ofset = String.valueOf(((X0RegWithOffset) z).getOffset());
+            
+            return ofset + "(%"+((X0RegWithOffset) z).getName()
+                     +")";
         }
         return null;
     }
