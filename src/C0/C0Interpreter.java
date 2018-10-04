@@ -117,11 +117,11 @@ public class C0Interpreter {
             if(e instanceof C0Neg) {
                 C0Arg a = ((C0Neg) e).getA();
                 if(a instanceof C0Int) {
-                    System.out.println( x + "="+ ((C0Int) a).getVal());
+                    System.out.println( x + "= -"+ ((C0Int) a).getVal());
                 }
                 else if(a instanceof C0Var) {
                     String var2 = ((C0Var) a).getName();
-                    System.out.println( x + "="+ var2);
+                    System.out.println( x + "= -"+ var2);
                         
                 }
             }

@@ -171,7 +171,7 @@ public class PassMethods {
                 instrs.add(new X1movq(C0ToX1Arg((C0Arg)e), C0ToX1Arg(s.getX())));
             } else if(e instanceof C0Read) {
                 //callq _read
-                instrs.add(new X1callq("_read"));
+                instrs.add(new X1callq("readint"));
                 //movq rax x
                 instrs.add(new X1movq(new X1Reg(), x));
                 
@@ -220,8 +220,28 @@ public class PassMethods {
                 newInstrs.add(new X0movq(X1toX0(((X1movq) cur).getA()), 
                         X1toX0(((X1movq) cur).getB())));
             } else if(cur instanceof X1retq) {
+                //should first get value to be returned and stick it in rax
+                X1Arg rArg = p.getRetArg();
+                //if int
+                if(rArg instanceof X1Int) {
+                    newInstrs.add(new X0movq(new X0Int(((X1Int) rArg).getVal()), new X0Reg("rax")));
+                }
+                //if var
+                else if(rArg instanceof X1Var) {
+                    //int index = 8*vars.lastIndexOf(rArg) /*+ 8*numUniqueVars*/;
+                    X0RegWithOffset retReg = (X0RegWithOffset) X1toX0(rArg);
+                    newInstrs.add(new X0movq(retReg, new X0Reg("rax")));
+                    
+                }
+                newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                //then call printint
+                
+                newInstrs.add(new X0callq("printint"));
+                
                 //the next instruction is added to clean up the stack
                 newInstrs.add(new X0addq(new X0Int(numUniqueVars*8), new X0Reg("rsp") ));
+                
+                //the previous steps should NOT be in print step because that makes debugging more awkward.
                 newInstrs.add(new X0retq(X1toX0(((X1retq) cur).getX())));
             } else if(cur instanceof X1negq) {
                 newInstrs.add(new X0negq(X1toX0(((X1negq) cur).getX())));
@@ -284,15 +304,14 @@ public class PassMethods {
         
         //set up externs (readint, printint)
         
-        prog += ".extern readint\n";
         prog += ".extern printint\n";
         prog += ".extern readint\n";
         prog += ".global main\n.text\n";
         
         //set up stack fram and give extra space
-        prog += "push %rbp\n";
-        prog += "mov %rsp, %rbp\n";
-        prog += "subq $0x20, %rsp\n";
+       // prog += "push %rbp\n";
+        //prog += "mov %rsp, %rbp\n";
+        //prog += "subq $0x20, %rsp\n";
         prog += "#end initialization\n";
         
         prog+="main:\n";
@@ -311,13 +330,14 @@ public class PassMethods {
             } else if(i instanceof X0retq) {
                 //maybe do extra stuff to clean up stack
                 
-                
+                /*
                 X0retq i2 = (X0retq) i;
                 //prog += "retq" + printX0Arg(i2.getX());
                 prog+= "movq " + printX0Arg(i2.getX()) +", %rax\n";
-                prog+="movabsq (%rax) ,%rcx\n";
+                prog+="movq (%rax) ,%rcx\n";
                 prog+= "callq printint\n";
                 prog+="pop %rbp\n#getting rid of the stack frame\n";
+*/
                 prog+="retq";
                 
             } else if(i instanceof X0callq) {

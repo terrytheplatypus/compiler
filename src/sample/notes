@@ -1,0 +1,3 @@
+the stuff I was doing with the stack frame seemed to have been messing the thing up. but that was only
+with the first test. adding back to the stack pointer should only be done after i'm done with rsp (put
+from 0(%rsp) into rax)
