@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class R0Int implements R0Expression {
     private int val;
-    R0Int(int val) {
+    public R0Int(int val) {
         this.val = val;
     }
 
