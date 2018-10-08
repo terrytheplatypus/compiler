@@ -6,8 +6,8 @@
 package tests;
 
 import R0.*;
-import static compilerPasses.PassMethods.compile;
 import static compilerPasses.PassMethods.printX0;
+import static compilerPasses.PassMethods.compile1;
 
 /**
  *
@@ -28,6 +28,6 @@ public class Utils {
     }
     public static void main(String[] args) {
         System.out.println("2^12 = " +R0Interpreter.R0Interpret(powerOf2(12)));
-        System.out.println(printX0(compile(powerOf2(12))));
+        System.out.println(printX0(compile1(powerOf2(12))));
     }
 }
