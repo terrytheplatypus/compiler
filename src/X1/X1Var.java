@@ -32,4 +32,9 @@ public class X1Var implements X1Arg{
         //if not X1Var
         return false;
     }
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+    
 }

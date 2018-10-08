@@ -68,4 +68,44 @@ public class X1Interpreter {
         
         return Integer.MIN_VALUE;
     }
+    public static void X1PrintWithLiveAfters (X1Program x) {
+        String prog = "";
+        int n = 1;
+        int m = 0;
+        for(X1Instr i:x.getInstrList()) {
+            //n++ and the string concatenation +
+            prog+= n+++":  ";
+            if(i instanceof X1movq) {
+                prog+="movq "+ StringifyX1Arg(((X1movq) i).getA())
+                        +" "+ StringifyX1Arg(((X1movq) i).getB());
+            } else if(i instanceof X1callq) {
+                prog+= "callq "+((X1callq) i).getLabel();
+            } else if(i instanceof X1retq) {
+                prog+= "retq "+StringifyX1Arg(((X1retq) i).getX());
+            } else if(i instanceof X1negq) {
+                prog += "negq "+StringifyX1Arg(((X1negq) i).getX());
+            } else if(i instanceof X1addq) {
+                prog+="addq "+ StringifyX1Arg(((X1addq) i).getA())
+                        +" "+ StringifyX1Arg(((X1addq) i).getB());
+            }
+            prog+="{";
+            if(x.getLiveAfters().get(n-2) == null) { prog+="}\n";continue;}
+            for(X1Var o:x.getLiveAfters().get(n-2)) {
+                prog+= o.getName() + ", ";
+            } prog += "}\n";
+            //m++;
+        }System.out.println(prog);
+        
+    }
+    private static String StringifyX1Arg(X1Arg a) {
+        if(a instanceof X1Int) {
+            return String.valueOf(((X1Int) a).getVal());
+        } else if(a instanceof X1Var) {
+            return ((X1Var) a).getName();
+        } else if (a instanceof X1Reg) {
+            return "rax";
+        }
+        return
+                "";
+    }
 }

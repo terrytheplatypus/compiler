@@ -25,9 +25,13 @@ import static R0.ConciseConstructors.nVar;
 import X0.*;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -42,8 +46,8 @@ public class PassMethods {
     //then flatten the results
     private static int numUniqueVars = 0;
     
-    public static String [] regNames = {/*"r8", "r9",*/ "r10", "r11","r12", "r15",
-                                        "rbx", "rcx", "rdx"};
+    public static String [] regNames = {"r8", "r9", "r10", "r11",
+                                        "rcx", "rdx", /*"rdi",*/ "rsi"};
     
     //all static variables need to be reset when compile is called on a new program,
     //and because uniquify is the first step, it should set numUniqueVars to 0
@@ -206,7 +210,92 @@ public class PassMethods {
         return new X1Program(vars, instrs, ret);
     }
     public static X1Program uncoverLive(X1Program p) {
-        return null;
+       List <X1Instr> instrs = p.getInstrList();
+       //make list for both live after sets and live before sets
+       List <List <X1Var>> livAfs = new ArrayList<>(Collections.nCopies(instrs.size(), null));
+       List <List <X1Var>> livBefs = new ArrayList<>(Collections.nCopies(instrs.size(), null));
+        ListIterator <X1Instr> it = instrs.listIterator(instrs.size());
+        
+        /*
+        List <X1Var> W_k= new ArrayList<>();
+        List <X1Var> R_k= new ArrayList<>();
+        List <X1Var> L_b_k1= new ArrayList<>();
+        List <X1Var> L_a_k= new ArrayList<>();
+        List <X1Var> L_b_k= new ArrayList<>();
+        */
+        
+        //next is to put the live after lists in correct index
+        //int n = instrs.size();
+        for(int n = instrs.size()-1; n >= 0; n--) {
+            
+            List <X1Var> W_k= new ArrayList<>();
+            List <X1Var> R_k= new ArrayList<>();
+            
+            //n--;
+            X1Instr i = instrs.get(n);
+            //X1Instr i = it.previous();
+            //first comput wk and rk based on the current instruction
+            
+            //some of the following variable changes may be redundant but
+            //are made so it would be easier to implement
+            
+            //l_a_k = l_b_k1
+            
+            //l_b_k = (l_a_k - w_k)U r_k
+            
+            // so l_b_k = (l_b_k+1 - w_k)U r_k
+            if(i instanceof X1addq) {
+                X1Arg a = ((X1addq) i).getA();
+                X1Arg b = ((X1addq) i).getB();
+                if(a instanceof X1Var) {
+                    R_k.add((X1Var)a);
+                }
+                if(b instanceof X1Var) {
+                    W_k.add((X1Var)b);
+                    R_k.add((X1Var)b);
+                }
+            } else if(i instanceof X1movq) {
+                X1Arg a = ((X1movq) i).getA();
+                X1Arg b = ((X1movq) i).getB();
+                if(a instanceof X1Var) {
+                    R_k.add((X1Var)a);
+                }
+                if(b instanceof X1Var) {
+                    W_k.add((X1Var)b);
+                }
+            } else if(i instanceof X1negq) {
+                X1Arg x = ((X1negq) i).getX();
+                if(x instanceof X1Var) {
+                    W_k.add((X1Var)x);
+                    R_k.add((X1Var)x);
+                }
+            } else if(i instanceof X1retq) {
+                X1Arg x = ((X1retq) i).getX();
+                if(x instanceof X1Var) {
+                    R_k.add((X1Var)x);
+                }
+            }
+            
+            if( n == instrs.size()-1) {
+                livBefs.set(n, R_k);
+                continue;
+            } else {
+                livAfs.set(n, livBefs.get(n+1));
+                //live after k
+                List <X1Var> lak = new ArrayList( livAfs.get(n));
+                lak.removeAll(W_k);
+                //putting it into hashset and back so it can add without duplcates
+                Set <X1Var> diff = new HashSet(lak);
+                Set <X1Var> r = new HashSet(R_k);
+                diff.addAll(r);
+                List result = new ArrayList(diff);
+                livBefs.set(n, result);
+            }
+            
+            // so l_b_k = (l_b_k+1 - w_k)U r_k
+            
+        }
+        return new X1Program(p.getVarList(), instrs, p.getRetArg(), livAfs);
     }
     //next one becomes obsolete but will stil be left in for testing.
     public static X0Program assign(X1Program p) {
@@ -320,7 +409,9 @@ public class PassMethods {
                     newInstrs.add(new X0movq(X1toX0Reg(rArg), new X0Reg("rax")));
                     
                 }
+                if(System.getProperty("os.name").startsWith("Windows"))
                 newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                else newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rdi")));
                 //then call printint
                 
                 newInstrs.add(new X0callq("printint"));
@@ -373,7 +464,7 @@ public class PassMethods {
             int len = splitName.length;
             int offset = Integer.valueOf(splitName[len-1]);
             if(offset >= regNames.length) {
-                return new X0RegWithOffset("rsp", (offset)*8);
+                return new X0RegWithOffset("rsp", (offset - regNames.length)*8);
             } else {
                 return new X0Reg(regNames[offset]);
             }

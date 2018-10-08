@@ -23,6 +23,15 @@ public class X1Program {
         this.retArg = retArg;
     }
 
+    public X1Program(List<X1Var> varList, List<X1Instr> instrList, X1Arg retArg, List<List<X1Var>> liveAfters) {
+        this.varList = varList;
+        this.instrList = instrList;
+        this.retArg = retArg;
+        this.liveAfters = liveAfters;
+    }
+    
+    
+
     public List<X1Instr> getInstrList() {
         return instrList;
     }
@@ -43,6 +52,17 @@ public class X1Program {
     public List <List<X1Var>> getLiveAfters ()
     {
         return liveAfters;
+    }
+    public void printLiveAfters() {
+        int n = 1;
+        for(List <X1Var> l:liveAfters) {
+            System.out.print(n+++":  ");
+            if (l == null) continue;
+            for (X1Var v:l) {
+                System.out.print(v.getName()+", ");
+            }
+            System.out.print("\n");
+        }
     }
     
 }
