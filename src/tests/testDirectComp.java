@@ -21,14 +21,13 @@ import java.io.PrintWriter;
  */
 public class testDirectComp {
     
-    public static void compileAndRun(R0Program p) throws IOException {
-        X0Program x = compile(p);
+    public static void runPrint(X0Program p) throws IOException, InterruptedException {
         
         File compiledFile = new File ("C:\\Users\\david\\Documents\\cygwin\\temp.s");
         String cygHome = "/cygdrive/c/users/david/Documents/cygwin";
         File executable = new File ("C:\\Users\\david\\Documents\\cygwin\\tempExec.exe");
         PrintWriter pr = new PrintWriter(compiledFile);
-        pr.write(printX0(x));
+        pr.write(printX0(p));
         pr.close();
         
         //print program x to a temporary file which is put in the "cygwin" directory, and deleted after
@@ -38,9 +37,11 @@ public class testDirectComp {
                                                         //next line holds all the commands
                                                         "cd "+ cygHome+";"+
                                                         "gcc "+cygHome+"/temp.s runtime.o -o tempExec;"
-                                                        + "./tempExec"}
+                                                        //+ "./tempExec;"
+                                                        + "time ./tempExec"}
                                                         ,new String[]{"PATH=/cygdrive/c/cygwin64/bin"});
-                
+        proc.waitFor();
+        
         BufferedReader stdInput = new BufferedReader(new 
         InputStreamReader(proc.getInputStream()));
 
@@ -64,11 +65,14 @@ public class testDirectComp {
         executable.delete();
     }
     
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         
         //2^12 gives blank
         
-        compileAndRun(Utils.powerOf2(11));
+        int n = 4;
+        System.out.println(printX0(compile2(Utils.powerOf2(n))));
+        runPrint(compile1(Utils.powerOf2(n)));
+        runPrint(compile2(Utils.powerOf2(n)));
  
     }
 }
