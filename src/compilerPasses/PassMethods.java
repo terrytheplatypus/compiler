@@ -42,6 +42,9 @@ public class PassMethods {
     //then flatten the results
     private static int numUniqueVars = 0;
     
+    public static String [] regNames = {/*"r8", "r9",*/ "r10", "r11","r12", "r15",
+                                        "rbx", "rcx", "rdx"};
+    
     //all static variables need to be reset when compile is called on a new program,
     //and because uniquify is the first step, it should set numUniqueVars to 0
     public static R0Program uniquify(R0Program p) {
@@ -202,6 +205,10 @@ public class PassMethods {
         instrs.add( new X1retq(ret));
         return new X1Program(vars, instrs, ret);
     }
+    public static X1Program uncoverLive(X1Program p) {
+        return null;
+    }
+    //next one becomes obsolete but will stil be left in for testing.
     public static X0Program assign(X1Program p) {
         
         List <X1Instr> origInstrs = p.getInstrList();
@@ -262,6 +269,72 @@ public class PassMethods {
         return new X0Program(newInstrs);
     }
     
+    
+    public static X0Program assignWithRegs(X1Program p) {
+        
+        int numUsedRegs = 0;
+        List <X1Instr> origInstrs = p.getInstrList();
+        List <X1Var> vars = p.getVarList();
+        //don't need to make a map because u can just
+        //truncate the string after the _ and then u got the number
+        
+        /*
+        ((structure):
+        sub 8*numVars from rsp
+        (translate original instrs except for last return)
+        mov "arg" into rax
+        add 8*numVars to rsp to clean up the stack
+        retq rax
+        */
+        List <X0Instr> newInstrs = new ArrayList<>();
+        newInstrs.add(new X0subq(new X0Int(
+                numUniqueVars>regNames.length?(numUniqueVars-regNames.length)*8:0
+        ), new X0Reg("rsp") ));
+        for(X1Instr cur: origInstrs) {
+            if(cur instanceof X1addq) {
+                
+                newInstrs.add(new X0addq(X1toX0Reg(((X1addq) cur).getA()), 
+                        X1toX0Reg(((X1addq) cur).getB())));
+            } else if(cur instanceof X1callq) {
+                newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
+            } else if(cur instanceof X1movq) {
+                newInstrs.add(new X0movq(X1toX0Reg(((X1movq) cur).getA()), 
+                        X1toX0Reg(((X1movq) cur).getB())));
+            } else if(cur instanceof X1retq) {
+                //should first get value to be returned and stick it in rax
+                X1Arg rArg = p.getRetArg();
+                //if int
+                if(rArg instanceof X1Int) {
+                    newInstrs.add(new X0movq(new X0Int(((X1Int) rArg).getVal()), new X0Reg("rax")));
+                }
+                //if var
+                else if(rArg instanceof X1Var) {
+                    //int index = 8*vars.lastIndexOf(rArg) /*+ 8*numUniqueVars*/;
+                    //X0RegWithOffset retReg = (X0RegWithOffset) X1toX0Reg(rArg);
+                    newInstrs.add(new X0movq(X1toX0Reg(rArg), new X0Reg("rax")));
+                    
+                }
+                newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                //then call printint
+                
+                newInstrs.add(new X0callq("printint"));
+                
+                //the next instruction is added to clean up the stack
+                newInstrs.add(new X0addq(new X0Int(
+                        numUniqueVars>regNames.length?(numUniqueVars-regNames.length)*8:0),
+                        new X0Reg("rsp") ));
+                
+                //the previous steps should NOT be in print step because that makes debugging more awkward.
+                newInstrs.add(new X0retq(X1toX0(((X1retq) cur).getX())));
+            } else if(cur instanceof X1negq) {
+                newInstrs.add(new X0negq(X1toX0(((X1negq) cur).getX())));
+            } 
+        }
+        
+        //then convert X1Instrs to X0Instrs
+        return new X0Program(newInstrs);
+    }
+    
     public static X0Arg X1toX0(X1Arg a) {
         if(a instanceof X1Int) {
             return new X0Int(((X1Int) a).getVal());
@@ -273,7 +346,35 @@ public class PassMethods {
         } else if(a instanceof X1Reg) {
             //in the previous step (at least in first iteration), 
             //the only register used is rax
-            return new X0Reg("rax");
+            return new X0Reg(((X1Reg) a).getName());
+        }
+        return null;
+    }
+    /**
+     * 
+     * @param a
+     * @param n
+     * n is the amount of free registers, if 0 then it goes
+     * to the stack
+     * @return 
+     */
+    public static X0Arg X1toX0Reg(X1Arg a) {
+        if(a instanceof X1Int) {
+            return new X0Int(((X1Int) a).getVal());
+        } else if(a instanceof X1Var) {
+            
+            String [] splitName = ((X1Var) a).getName().split("_");
+            int len = splitName.length;
+            int offset = Integer.valueOf(splitName[len-1]);
+            if(offset >= regNames.length) {
+                return new X0RegWithOffset("rsp", (offset)*8);
+            } else {
+                return new X0Reg(regNames[offset]);
+            }
+        } else if(a instanceof X1Reg) {
+            //in the previous step (at least in first iteration), 
+            //the only register used is rax
+            return new X0Reg(((X1Reg) a).getName());
         }
         return null;
     }
@@ -302,8 +403,22 @@ public class PassMethods {
         return new X0Program(newInstrs);
     }
     
-    public static X0Program compile(R0Program p) {
+    /**
+     * first compiler version
+     * @param p
+     * @return 
+     */
+    public static X0Program compile1(R0Program p) {
         return fix(assign(select(flatten(uniquify(p)))));
+    }
+    
+    /**
+     * naive register allocation
+     * @param p
+     * @return 
+     */
+    public static X0Program compile2(R0Program p) {
+        return fix(assignWithRegs(select(flatten(uniquify(p)))));
     }
     
     public static String printX0(X0Program p){
