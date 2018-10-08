@@ -21,27 +21,53 @@ import java.io.PrintWriter;
  */
 public class testDirectComp {
     
-    public static void runPrint(X0Program p) throws IOException, InterruptedException {
+    public static void runPrint(X0Program x) throws IOException {
+        //X0Program x = compile(p);
+        Process proc;
+        File compiledFile;
+        File executable;
         
-        File compiledFile = new File ("C:\\Users\\david\\Documents\\cygwin\\temp.s");
-        String cygHome = "/cygdrive/c/users/david/Documents/cygwin";
-        File executable = new File ("C:\\Users\\david\\Documents\\cygwin\\tempExec.exe");
-        PrintWriter pr = new PrintWriter(compiledFile);
-        pr.write(printX0(p));
-        pr.close();
-        
-        //print program x to a temporary file which is put in the "cygwin" directory, and deleted after
-        //compilation
-        
-        Process proc=  Runtime.getRuntime().exec(new String[]{"C:\\cygwin64\\bin\\bash.exe", "-c", 
-                                                        //next line holds all the commands
-                                                        "cd "+ cygHome+";"+
-                                                        "gcc "+cygHome+"/temp.s runtime.o -o tempExec;"
-                                                        //+ "./tempExec;"
-                                                        + "time ./tempExec"}
-                                                        ,new String[]{"PATH=/cygdrive/c/cygwin64/bin"});
-        proc.waitFor();
-        
+        //if i'm on windows (assumes my specific file configuration which is bad)
+        if(System.getProperty("os.name").startsWith("Windows")){   
+            compiledFile = new File ("C:\\Users\\david\\Documents\\cygwin\\temp.s");
+            String cygHome = "/cygdrive/c/users/david/Documents/cygwin";
+            executable = new File ("C:\\Users\\david\\Documents\\cygwin\\tempExec.exe");
+            PrintWriter pr = new PrintWriter(compiledFile);
+            pr.write(printX0(x));
+            pr.close();
+
+            //print program x to a temporary file which is put in the "cygwin" directory, and deleted after
+            //compilation
+
+            proc=  Runtime.getRuntime().exec(new String[]{"C:\\cygwin64\\bin\\bash.exe", "-c", 
+                                                            //next line holds all the commands
+                                                            "cd "+ cygHome+";"+
+                                                            "gcc "+cygHome+"/temp.s runtime.o -o tempExec;"
+                                                            + "./tempExec"}
+                                                            ,new String[]{"PATH=/cygdrive/c/cygwin64/bin"});
+        } 
+        //if it's not windows then it's linux because those are the only operating systems
+        else {   
+            compiledFile = new File ("src/tests/temp.s");
+            //String cygHome = "/cygdrive/c/users/david/Documents/cygwin";
+            executable = new File ("src/tests/tempExec");
+            PrintWriter pr = new PrintWriter(compiledFile);
+            pr.write(printX0(x));
+            pr.close();
+
+            //print program x to a temporary file which is put in the "cygwin" directory, and deleted after
+            //compilation
+
+            String curDir = System.getProperty("user.dir");
+            System.out.println(curDir);
+            proc=  Runtime.getRuntime().exec(new String[]{"bash", "-c", 
+                                                            //next line holds all the commands
+                                                            "gcc -c runtime.c&&" +
+                                                            "gcc temp.s runtime.o -o tempExec&&"
+                                                            + " time ./tempExec"}
+                                                            ,null,
+                                                            new File(curDir+"/src/tests"));
+        }
         BufferedReader stdInput = new BufferedReader(new 
         InputStreamReader(proc.getInputStream()));
 

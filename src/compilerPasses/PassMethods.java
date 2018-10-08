@@ -250,7 +250,13 @@ public class PassMethods {
                     newInstrs.add(new X0movq(retReg, new X0Reg("rax")));
                     
                 }
+                                //because i'm only using windows or linux,
+                //this next part assumes that if i'm not on windows,
+                // i'm on linux. linux takes rdi as first func call arg,
+                //and windows takes rcx
+                if(System.getProperty("os.name").startsWith("Windows"))
                 newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                else newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rdi")));
                 //then call printint
                 
                 newInstrs.add(new X0callq("printint"));
