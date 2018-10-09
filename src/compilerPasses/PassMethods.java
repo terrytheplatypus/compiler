@@ -404,6 +404,7 @@ public class PassMethods {
         for(Map.Entry<X1Var, Integer> curr:g.entrySet()) {
             if(curr.getValue() >= 0) return true;
         }
+        return false;
     }
     
     //next one becomes obsolete but will stil be left in for testing.
