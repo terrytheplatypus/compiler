@@ -321,7 +321,7 @@ public class PassMethods {
                 X1Arg s = ((X1addq) i).getA();
                 X1Arg d = ((X1addq) i).getB();
                 for( X1Var v:p.getLiveAfters().get(n)) {
-                    if(v != (X1Var) d) {
+                    if(!v.equals((X1Var) d)) {
                         map.addEdge(d, (X1Var)v );
                     }
                 }
@@ -334,7 +334,8 @@ public class PassMethods {
                     if(d instanceof X1Int) continue;
                     if(s instanceof X1Int) s = new X1Var("_");
                     
-                    if(v != (X1Var) s && v != (X1Var) d) {
+                    
+                    if(!v.equals((X1Var) s) && !v.equals((X1Var) d)) {
                         map.addEdge(d, (X1Var)v );
                     }
                 }
@@ -342,7 +343,7 @@ public class PassMethods {
                 X1Arg d = ((X1negq) i).getX();
                 if(d instanceof X1Int) continue;
                 for( X1Var v:p.getLiveAfters().get(n)) {
-                    if(v != (X1Var) d) {
+                    if(!v.equals((X1Var) d)) {
                         map.addEdge(d, (X1Var)v );
                     }
                 }
@@ -373,7 +374,7 @@ public class PassMethods {
         //because the live-after list is no longer needed after interference
         //graph is built, it should throw null to the constructor for that
         
-        
+        map.print();
         return new X1Program(p.getVarList(), p.getInstrList(), p.getRetArg(), map);
         
     }
@@ -471,7 +472,7 @@ public class PassMethods {
         //color map is initialized with -1 so if it finds something not -1
         //it returns true
         for(Map.Entry<X1Arg, Integer> curr:g.entrySet()) {
-            if(curr.getValue() >= 0) return true;
+            if(curr.getValue() < 0) return true;
         }
         return false;
     }
@@ -503,15 +504,16 @@ public class PassMethods {
         Map<X1Arg, X0Arg> allocMap = new HashMap<>();
         
         //used to check index in the registers array
-        int n = 0;
+        //int n = 0;
         for(Map.Entry<X1Arg, Integer> curr: m.entrySet()) {
-            n++;
+            //n++;
+            int color = curr.getValue();
             X0Arg a;
             
-            if(n <= regNames.length) {
-                allocMap.put(curr.getKey(), new X0Reg(regNames[n-1]));
+            if(color < regNames.length) {
+                allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
             } else 
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (n- regNames.length)*8));
+                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
         }
         
         return new Pair(stackSpaces*8, allocMap);

@@ -41,4 +41,9 @@ public class X1Reg implements X1Arg{
         return name.hashCode();
     }
     
+    @Override
+    public String stringify() {
+       return name;
+    }
+    
 }

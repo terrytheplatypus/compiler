@@ -47,4 +47,14 @@ public class AdjacencyMap {
         int mouse = 17;
     }
     
+    public void print () {
+        for(Map.Entry<X1Arg ,Set <X1Arg>> curs:adjMap.entrySet()) {
+            System.out.print(curs.getKey().stringify()+": ");
+            for(X1Arg curses:curs.getValue()) {
+                System.out.print(curses.stringify()+",");
+            }
+            System.out.print("\n");
+        }
+    }
+    
 }
