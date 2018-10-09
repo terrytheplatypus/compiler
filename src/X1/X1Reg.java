@@ -24,5 +24,21 @@ public class X1Reg implements X1Arg{
         return name;
     }
     
+     @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof X1Var) {
+            X1Var a = (X1Var) obj;
+            if(a.getName().equals(this.name)) {
+                return true;
+            }
+            else return false;
+        }
+        //if not X1Var
+        return false;
+    }
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
     
 }

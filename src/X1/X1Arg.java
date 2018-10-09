@@ -11,4 +11,10 @@ package X1;
  */
 public interface X1Arg {
     
+    //these are here because of the graph coloring algorithm, which takes either
+    //vars or regs for the coloring
+    @Override
+    public abstract boolean equals(Object obj);
+    @Override
+    public abstract int hashCode();
 }

@@ -32,7 +32,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import javafx.util.Pair;
 
 /**
  *
@@ -328,12 +330,17 @@ public class PassMethods {
                 X1Arg s = ((X1movq) i).getA();
                 X1Arg d = ((X1movq) i).getB();
                 for( X1Var v:p.getLiveAfters().get(n)) {
+                    //next line is just to patch if it isn't var
+                    if(d instanceof X1Int) continue;
+                    if(s instanceof X1Int) s = new X1Var("_");
+                    
                     if(v != (X1Var) s && v != (X1Var) d) {
                         map.addEdge(d, (X1Var)v );
                     }
                 }
             } else if(i instanceof X1negq) {
                 X1Arg d = ((X1negq) i).getX();
+                if(d instanceof X1Int) continue;
                 for( X1Var v:p.getLiveAfters().get(n)) {
                     if(v != (X1Var) d) {
                         map.addEdge(d, (X1Var)v );
@@ -371,8 +378,13 @@ public class PassMethods {
         
     }
     
-    
-    public static Map <X1Var, Integer> colorGraph (List <X1Var> vars, AdjacencyMap map) {
+    /**
+     * returns color graph and amount of colors
+     * @param vars
+     * @param adjMap
+     * @return 
+     */
+    public static Pair< Integer, Map <X1Arg, Integer> > colorGraph (List <X1Var> vars, AdjacencyMap adjMap) {
         /*
         pseudocode alg:
         W ← vertices(G)
@@ -388,24 +400,198 @@ public class PassMethods {
         //the thing which has the most ways it cannot be colored
         
         //initialize map with -1
-        Map <X1Var, Integer> colorMap = new HashMap<>();
+        Map <X1Arg, Integer> colorMap = new HashMap<>();
+        Map <X1Arg, Integer> saturationMap = new HashMap<>();
+        int colorNumber = 0;
+        
         for(X1Var v:vars) {
             colorMap.put(v, -1);
         }
+        for(X1Var v:vars) {
+            saturationMap.put(v, 0);
+        }
         while(verticesAreRemaining(colorMap)) {
+            //get a list of highest saturation vertices
+            //do this by looking at the saturation map's entryset
+            List <X1Arg> highSatVertices = new ArrayList();
+            //first just get the highest saturation value, then get the highest valued keys
+            int highestSat = -1;
+            for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
+                if(cur.getValue() > highestSat) highestSat = cur.getValue();
+            }
             
+            for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
+                if(cur.getValue() == highestSat) highSatVertices.add(cur.getKey());
+            }
+            
+            //current node being colored
+            X1Arg colorMe;
+            //if there's multiple pick one at random
+            //simple impl: get random number from 0 to highsatvertices.length -1
+            //if there's only one element get that one and proceed
+            if(highSatVertices.size() > 1) {
+                Random rand = new Random();
+                int choice = rand.nextInt(highSatVertices.size());
+                colorMe = highSatVertices.get(choice);
+            } else colorMe = highSatVertices.get(0);
+            
+            
+            
+            
+            
+            
+            //to get lowest color above neighbors, put neighbor's colors in list
+            
+            Set <X1Arg> neighbors = adjMap.getEdges(colorMe);
+            List <Integer> neighborColors = new ArrayList<>();
+            for(X1Arg a:neighbors) {
+                if(a instanceof X1Var)
+                    neighborColors.add(colorMap.get( (X1Var) a));
+            }
+            //then use Collections.max
+            int newColor = Collections.max(neighborColors);
+            colorNumber = newColor;
+            
+            //put that color in the color map
+            colorMap.put(colorMe, newColor+1);
+            //add 1 to the saturation map value for all its neighbors
+            for(X1Arg a:neighbors) {
+                int oldSat = saturationMap.get( (X1Var) a);
+                saturationMap.put((X1Var) a, oldSat+1);
+                
+            }
         }
         
-        return null;
+        return new Pair(colorNumber, colorMap);
     }
-    public static boolean verticesAreRemaining(Map <X1Var, Integer> g) {
+    
+    
+    
+    public static boolean verticesAreRemaining(Map <X1Arg, Integer> g) {
         //color map is initialized with -1 so if it finds something not -1
         //it returns true
-        for(Map.Entry<X1Var, Integer> curr:g.entrySet()) {
+        for(Map.Entry<X1Arg, Integer> curr:g.entrySet()) {
             if(curr.getValue() >= 0) return true;
         }
         return false;
     }
+    
+    //returns a map from X1Vars to X0Args
+    //then i make a separate method that takes a map from X1 Vars to X0Args 
+    //and uses that to generate the program
+    //the function that generates the program will allocate varlist.len*8 space
+    //so then it can be truly modular
+    /**
+     * 
+     * @param p
+     * @return a pair with amount of stack memory allocated and the map
+     * from x1args to x0args
+     */
+    public static Pair<Integer, Map<X1Arg, X0Arg>> regAlloc(X1Program p) {
+        //do uncoverlive, build interference, and then get colored graph,
+        //then loop through the map, mapping variables first to the registers,
+        //then the stack, based on the color
+        //then convert p into X0Program, copying code from original assign
+        X1Program p2 = uncoverLive(p);
+        p2 = buildInterference(p2);
+        Pair<Integer, Map <X1Arg, Integer>> colorPair = colorGraph(p2.getVarList(), p2.getAdjMap());
+        Map <X1Arg, Integer> m = colorPair.getValue();
+        //gets the amount of spaces on the stack that are used (assuming all vars
+        //take up 8 bytes for int, if it's less than 0 then set it to 0
+        int stackSpaces = colorPair.getKey() + 1 - regNames.length;
+        stackSpaces = stackSpaces >= 0 ? stackSpaces : 0;
+        Map<X1Arg, X0Arg> allocMap = new HashMap<>();
+        
+        //used to check index in the registers array
+        int n = 0;
+        for(Map.Entry<X1Arg, Integer> curr: m.entrySet()) {
+            n++;
+            X0Arg a;
+            
+            if(n <= regNames.length) {
+                allocMap.put(curr.getKey(), new X0Reg(regNames[n-1]));
+            } else 
+                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (n- regNames.length)*8));
+        }
+        
+        return new Pair(stackSpaces*8, allocMap);
+    }
+    
+    /**
+     * The purpose of this is so i can make it interchangeable with other methods
+     * of assigning registers/stack locations to variables
+     * @param p
+     * @param allocPair
+     * @return 
+     */
+    public static X0Program assignModular (X1Program p ,
+            Pair<Integer, Map<X1Arg, X0Arg>> allocPair ) {
+        
+        int stackSpace = allocPair.getKey();
+        Map<X1Arg, X0Arg> m = allocPair.getValue();
+        int numUsedRegs = 0;
+        List <X1Instr> origInstrs = p.getInstrList();
+        List <X1Var> vars = p.getVarList();
+        //don't need to make a map because u can just
+        //truncate the string after the _ and then u got the number
+        
+        /*
+        ((structure):
+        sub 8*numVars from rsp
+        (translate original instrs except for last return)
+        mov "arg" into rax
+        add 8*numVars to rsp to clean up the stack
+        retq rax
+        */
+        List <X0Instr> newInstrs = new ArrayList<>();
+        newInstrs.add(new X0subq(new X0Int(stackSpace), new X0Reg("rsp") ));
+        for(X1Instr cur: origInstrs) {
+            if(cur instanceof X1addq) {
+                
+                newInstrs.add(new X0addq(X1ToX0MapConvert(((X1addq) cur).getA(), m), 
+                        X1toX0Reg(((X1addq) cur).getB())));
+            } else if(cur instanceof X1callq) {
+                newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
+            } else if(cur instanceof X1movq) {
+                newInstrs.add(new X0movq(X1ToX0MapConvert(((X1movq) cur).getA(), m), 
+                        X1ToX0MapConvert(((X1movq) cur).getB(), m)));
+            } else if(cur instanceof X1retq) {
+                //should first get value to be returned and stick it in rax
+                X1Arg rArg = p.getRetArg();
+                //if int
+                if(rArg instanceof X1Int) {
+                    newInstrs.add(new X0movq(new X0Int(((X1Int) rArg).getVal()), new X0Reg("rax")));
+                }
+                //if var
+                else if(rArg instanceof X1Var) {
+                    //int index = 8*vars.lastIndexOf(rArg) /*+ 8*numUniqueVars*/;
+                    //X0RegWithOffset retReg = (X0RegWithOffset) X1toX0Reg(rArg);
+                    newInstrs.add(new X0movq(X1ToX0MapConvert(rArg, m), new X0Reg("rax")));
+                    
+                }
+                if(System.getProperty("os.name").startsWith("Windows"))
+                newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                else newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rdi")));
+                //then call printint
+                
+                newInstrs.add(new X0callq("printint"));
+                
+                //the next instruction is added to clean up the stack
+                newInstrs.add(new X0addq(new X0Int(stackSpace),
+                        new X0Reg("rsp") ));
+                
+                //the previous steps should NOT be in print step because that makes debugging more awkward.
+                newInstrs.add(new X0retq(X1ToX0MapConvert(((X1retq) cur).getX(), m)));
+            } else if(cur instanceof X1negq) {
+                newInstrs.add(new X0negq(X1ToX0MapConvert(((X1negq) cur).getX(),m)));
+            } 
+        }
+        
+        //then convert X1Instrs to X0Instrs
+        return new X0Program(newInstrs);
+        
+    }
+    
     
     //next one becomes obsolete but will stil be left in for testing.
     public static X0Program assign(X1Program p) {
@@ -560,9 +746,6 @@ public class PassMethods {
     /**
      * 
      * @param a
-     * @param n
-     * n is the amount of free registers, if 0 then it goes
-     * to the stack
      * @return 
      */
     public static X0Arg X1toX0Reg(X1Arg a) {
@@ -584,6 +767,23 @@ public class PassMethods {
             return new X0Reg(((X1Reg) a).getName());
         }
         return null;
+    }
+    
+    public static X0Arg X1ToX0MapConvert(X1Arg a, Map<X1Arg, X0Arg>  m) {
+        if (a instanceof X1Var) {
+            return m.get(a);
+        } else return intRegConvert(a);
+    }
+    
+    /**
+     * Converts X1Arg (int or reg) to X0Arg
+     * @param x
+     * @return 
+     */
+    public static X0Arg intRegConvert(X1Arg x) {
+        if( x instanceof X1Int) return new X0Int(((X1Int) x).getVal());
+        else if (x instanceof X1Reg) return new X0Reg(((X1Reg) x).getName());
+        else{System.err.println("Error converting X1 Arg to X0 Arg"); return null;}
     }
     
     public static X0Program fix(X0Program p) {

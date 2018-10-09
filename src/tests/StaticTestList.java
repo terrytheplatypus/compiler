@@ -46,6 +46,13 @@ public class StaticTestList {
                             )
                     )
                 )));
+        R0Program s = new R0Program(nLet(nVar("v"), nInt(1), 
+                                    nLet(nVar("w"), nInt(46), 
+                                    nLet(nVar("x"), nAdd(nVar("v"), nInt(7)),
+                                    nLet(nVar("y"), nAdd(nInt(4), nVar("x")),
+                                    nLet(nVar("z"), nAdd(nVar("x"), nVar("w")),
+                                    nAdd(nVar("z"), nNeg(nVar("y")))))))));
+        l.add(s);
         return l;
     }
 }
