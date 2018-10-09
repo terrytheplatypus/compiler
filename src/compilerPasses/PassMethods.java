@@ -23,6 +23,7 @@ import static R0.ConciseConstructors.nLet;
 import static R0.ConciseConstructors.nNeg;
 import static R0.ConciseConstructors.nVar;
 import X0.*;
+import X1.AdjacencyMap;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -206,14 +207,19 @@ public class PassMethods {
             }
         }
         X1Arg ret = C0ToX1Arg(p.getReturnArg());
+        /*put here instead of assign: mov arg into rax,
+        then  put rax into rdi,
+        then call printint,
+        then at X1retq (no arguments)*/
+        //or if you keep it as retq(ret) then treat retq like a move to rax
         instrs.add( new X1retq(ret));
         return new X1Program(vars, instrs, ret);
     }
     public static X1Program uncoverLive(X1Program p) {
        List <X1Instr> instrs = p.getInstrList();
        //make list for both live after sets and live before sets
-       List <List <X1Var>> livAfs = new ArrayList<>(Collections.nCopies(instrs.size(), null));
-       List <List <X1Var>> livBefs = new ArrayList<>(Collections.nCopies(instrs.size(), null));
+       List <List <X1Var>> livAfs = new ArrayList<>(Collections.nCopies(instrs.size(), new ArrayList <X1Var>() ));
+       List <List <X1Var>> livBefs = new ArrayList<>(Collections.nCopies(instrs.size(), new ArrayList <X1Var>() ));
         ListIterator <X1Instr> it = instrs.listIterator(instrs.size());
         
         /*
@@ -270,6 +276,7 @@ public class PassMethods {
                     R_k.add((X1Var)x);
                 }
             } else if(i instanceof X1retq) {
+                //X1retq currently treated as mov
                 X1Arg x = ((X1retq) i).getX();
                 if(x instanceof X1Var) {
                     R_k.add((X1Var)x);
@@ -297,6 +304,108 @@ public class PassMethods {
         }
         return new X1Program(p.getVarList(), instrs, p.getRetArg(), livAfs);
     }
+    public static X1Program buildInterference(X1Program p) {
+        
+        X1Program newProg;
+        AdjacencyMap map = new AdjacencyMap();
+        List <X1Reg> registers = new ArrayList<>();
+        for(String r:regNames) registers.add(new X1Reg(r));
+        
+        //for xinstr's corresponding liveafter
+        int n = -1;
+        for(X1Instr i:p.getInstrList()) {
+            n++;
+            if(i instanceof X1addq) {
+                X1Arg s = ((X1addq) i).getA();
+                X1Arg d = ((X1addq) i).getB();
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    if(v != (X1Var) d) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+                
+            } else if(i instanceof X1movq) {
+                X1Arg s = ((X1movq) i).getA();
+                X1Arg d = ((X1movq) i).getB();
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    if(v != (X1Var) s && v != (X1Var) d) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+            } else if(i instanceof X1negq) {
+                X1Arg d = ((X1negq) i).getX();
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    if(v != (X1Var) d) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+                
+            } else if(i instanceof X1callq) {
+                X1Arg x = ((X1retq) i).getX();
+                if(x instanceof X1Var) {
+                    //will implement after i implement the rest of it
+                    for( X1Var v:p.getLiveAfters().get(n)) {
+                        for(X1Reg r:registers) map.addEdge(r, v);
+                    }
+                    
+                }
+            } else if (i instanceof X1retq) {
+                //X1retq currently treated as mov
+                //but i don't think it has to do anything
+                //because it's last so there's no liveafter set
+                /*
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    if(v != (X1Var) s && v != (X1Var) d) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+                */
+            }
+        }
+        
+        //because the live-after list is no longer needed after interference
+        //graph is built, it should throw null to the constructor for that
+        
+        
+        return new X1Program(p.getVarList(), p.getInstrList(), p.getRetArg(), map);
+        
+    }
+    
+    
+    public static Map <X1Var, Integer> colorGraph (List <X1Var> vars, AdjacencyMap map) {
+        /*
+        pseudocode alg:
+        W ← vertices(G)
+        while W not ∅ do
+            pick a node u from W with the highest saturation,
+                breaking ties randomly
+            find the lowest color c that is not in {color[v] : v ∈ adjacent(u)}
+            color[u] ← c
+            W ← W − {u}
+        */
+        //because of stack memory, "colors" can be infinite,
+        //so it's better to think of saturation as
+        //the thing which has the most ways it cannot be colored
+        
+        //initialize map with -1
+        Map <X1Var, Integer> colorMap = new HashMap<>();
+        for(X1Var v:vars) {
+            colorMap.put(v, -1);
+        }
+        while(verticesAreRemaining(colorMap)) {
+            
+        }
+        
+        return null;
+    }
+    public static boolean verticesAreRemaining(Map <X1Var, Integer> g) {
+        //color map is initialized with -1 so if it finds something not -1
+        //it returns true
+        for(Map.Entry<X1Var, Integer> curr:g.entrySet()) {
+            if(curr.getValue() >= 0) return true;
+        }
+    }
+    
     //next one becomes obsolete but will stil be left in for testing.
     public static X0Program assign(X1Program p) {
         
@@ -550,16 +659,6 @@ public class PassMethods {
                 X0negq i2 = (X0negq) i;
                 prog += "negq " + printX0Arg(i2.getX());
             } else if(i instanceof X0retq) {
-                //maybe do extra stuff to clean up stack
-                
-                /*
-                X0retq i2 = (X0retq) i;
-                //prog += "retq" + printX0Arg(i2.getX());
-                prog+= "movq " + printX0Arg(i2.getX()) +", %rax\n";
-                prog+="movq (%rax) ,%rcx\n";
-                prog+= "callq printint\n";
-                prog+="pop %rbp\n#getting rid of the stack frame\n";
-*/
                 prog+="retq";
                 
             } else if(i instanceof X0callq) {

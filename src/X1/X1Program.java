@@ -16,6 +16,7 @@ public class X1Program {
     private List<X1Instr> instrList;
     private X1Arg retArg;
     private List < List <X1Var>> liveAfters;
+    private AdjacencyMap adjMap;
 
     public X1Program(List<X1Var> varList, List<X1Instr> instrList, X1Arg retArg) {
         this.varList = varList;
@@ -29,6 +30,14 @@ public class X1Program {
         this.retArg = retArg;
         this.liveAfters = liveAfters;
     }
+    
+    public X1Program(List<X1Var> varList, List<X1Instr> instrList, X1Arg retArg, AdjacencyMap adjMap) {
+        this.varList = varList;
+        this.instrList = instrList;
+        this.retArg = retArg;
+        this.adjMap = adjMap;
+    }
+    
     
     
 
@@ -53,6 +62,13 @@ public class X1Program {
     {
         return liveAfters;
     }
+
+    public AdjacencyMap getAdjMap() {
+        return adjMap;
+    }
+    
+    
+    
     public void printLiveAfters() {
         int n = 1;
         for(List <X1Var> l:liveAfters) {

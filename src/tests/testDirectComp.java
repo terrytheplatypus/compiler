@@ -95,9 +95,10 @@ public class testDirectComp {
         
         //2^12 gives blank
         
-        int n = 11;
+        int n = 14;
         //System.out.println(printX0(compile2(Utils.powerOf2(n))));
         runPrint(compile1(Utils.powerOf2(n)));
+        Thread.sleep(1);
         runPrint(compile2(Utils.powerOf2(n)));
  
     }
