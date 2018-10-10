@@ -19,4 +19,5 @@ public interface X1Arg {
     public abstract int hashCode();
     
     public abstract String stringify();
+    
 }

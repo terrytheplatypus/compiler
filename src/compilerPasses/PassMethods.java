@@ -381,11 +381,11 @@ public class PassMethods {
     
     /**
      * returns color graph and amount of colors
-     * @param vars
+     * @param varsAndRegs
      * @param adjMap
      * @return 
      */
-    public static Pair< Integer, Map <X1Arg, Integer> > colorGraph (List <X1Var> vars, AdjacencyMap adjMap) {
+    public static Pair< Integer, Map <X1Arg, Integer> > colorGraph (List <X1Arg> varsAndRegs, AdjacencyMap adjMap) {
         /*
         pseudocode alg:
         W ← vertices(G)
@@ -403,26 +403,36 @@ public class PassMethods {
         //initialize map with -1
         Map <X1Arg, Integer> colorMap = new HashMap<>();
         Map <X1Arg, Integer> saturationMap = new HashMap<>();
+        Set <X1Arg> uncolored = adjMap.getVarsAndRegs();
         int colorNumber = 0;
         
-        for(X1Var v:vars) {
+        for(X1Arg v:varsAndRegs) {
             colorMap.put(v, -1);
         }
-        for(X1Var v:vars) {
+        for(X1Arg v:varsAndRegs) {
             saturationMap.put(v, 0);
         }
-        while(verticesAreRemaining(colorMap)) {
+        while(uncolored.size() > 0) {
             //get a list of highest saturation vertices
             //do this by looking at the saturation map's entryset
             List <X1Arg> highSatVertices = new ArrayList();
             //first just get the highest saturation value, then get the highest valued keys
-            int highestSat = -1;
-            for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
-                if(cur.getValue() > highestSat) highestSat = cur.getValue();
+            int highestSat = -999;
+            //for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
+            for(X1Arg cur:uncolored) {
+                int curSat= saturationMap.get(cur);
+                if(curSat > highestSat && uncolored.contains(cur)) {
+                    System.out.println("found new highest");
+                    highestSat = curSat;
+                }/*
+                else {
+                    boolean t = uncolored.contains(cur.getKey());
+                    System.out.println(uncolored.contains(cur));
+                }*/
             }
             
             for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
-                if(cur.getValue() == highestSat) highSatVertices.add(cur.getKey());
+                if(cur.getValue() == highestSat && uncolored.contains(cur.getKey())) highSatVertices.add(cur.getKey());
             }
             
             //current node being colored
@@ -434,7 +444,11 @@ public class PassMethods {
                 Random rand = new Random();
                 int choice = rand.nextInt(highSatVertices.size());
                 colorMe = highSatVertices.get(choice);
-            } else colorMe = highSatVertices.get(0);
+            } else if(highSatVertices.size() == 1) colorMe = highSatVertices.get(0);
+            else{
+                System.out.println("Error: Did not find any nodes");
+                continue;
+            }
             
             
             
@@ -450,18 +464,26 @@ public class PassMethods {
                     neighborColors.add(colorMap.get( (X1Var) a));
             }
             //then use Collections.max
-            int newColor = Collections.max(neighborColors);
+            int newColor = Collections.max(neighborColors)+1;
             colorNumber = newColor;
             
             //put that color in the color map
-            colorMap.put(colorMe, newColor+1);
+            colorMap.put(colorMe, newColor);
             //add 1 to the saturation map value for all its neighbors
             for(X1Arg a:neighbors) {
                 int oldSat = saturationMap.get( (X1Var) a);
                 saturationMap.put((X1Var) a, oldSat+1);
                 
             }
+            uncolored.remove(colorMe);
+            //saturationMap.remove(colorMe);
         }
+        
+        //next part for testing:
+        for(Map.Entry<X1Arg,Integer> c:colorMap.entrySet()) {
+            System.out.println("Var/Reg name and color: "+c.getKey().stringify() 
+                    +", " + c.getValue());
+        } System.out.println(colorNumber);
         
         return new Pair(colorNumber, colorMap);
     }
@@ -495,7 +517,9 @@ public class PassMethods {
         //then convert p into X0Program, copying code from original assign
         X1Program p2 = uncoverLive(p);
         p2 = buildInterference(p2);
-        Pair<Integer, Map <X1Arg, Integer>> colorPair = colorGraph(p2.getVarList(), p2.getAdjMap());
+        //this part should also add all the registers
+        List <X1Arg> argList = new ArrayList(p2.getVarList());
+        Pair<Integer, Map <X1Arg, Integer>> colorPair = colorGraph(argList, p2.getAdjMap());
         Map <X1Arg, Integer> m = colorPair.getValue();
         //gets the amount of spaces on the stack that are used (assuming all vars
         //take up 8 bytes for int, if it's less than 0 then set it to 0
@@ -510,10 +534,10 @@ public class PassMethods {
             int color = curr.getValue();
             X0Arg a;
             
-            if(color < regNames.length) {
+            if(color + 1 < regNames.length) {
                 allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
             } else 
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
+                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length+1)*8));
         }
         
         return new Pair(stackSpaces*8, allocMap);
@@ -849,7 +873,9 @@ public class PassMethods {
         prog += "#end initialization\n";
         
         prog+="main:\n";
+        int n = 0;
         for(X0Instr i:p.getInstrList()) {
+            prog+=n+++": ";
             if(i instanceof X0addq) {
                 X0addq i2 = (X0addq) i;
                 prog += "addq " + printX0Arg(i2.getA()) 

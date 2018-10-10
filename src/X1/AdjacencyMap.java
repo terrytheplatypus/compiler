@@ -7,6 +7,7 @@ package X1;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,6 +46,10 @@ public class AdjacencyMap {
         x.addEdge(new X1Var("iu"), new X1Var("bug"));
         x.addEdge(new X1Var("iu"), new X1Var("bu"));
         int mouse = 17;
+    }
+    
+    public Set <X1Arg> getVarsAndRegs() {
+        return adjMap.keySet();
     }
     
     public void print () {
