@@ -465,7 +465,7 @@ public class PassMethods {
             }
             //then use Collections.max
             int newColor = Collections.max(neighborColors)+1;
-            colorNumber = newColor;
+            //colorNumber = newColor+1;
             
             //put that color in the color map
             colorMap.put(colorMe, newColor);
@@ -479,11 +479,13 @@ public class PassMethods {
             //saturationMap.remove(colorMe);
         }
         
+        colorNumber = Collections.max(colorMap.values())+1;
+        
         //next part for testing:
         for(Map.Entry<X1Arg,Integer> c:colorMap.entrySet()) {
             System.out.println("Var/Reg name and color: "+c.getKey().stringify() 
                     +", " + c.getValue());
-        } System.out.println(colorNumber);
+        } System.out.println( "color number: "+ colorNumber);
         
         return new Pair(colorNumber, colorMap);
     }
@@ -523,7 +525,7 @@ public class PassMethods {
         Map <X1Arg, Integer> m = colorPair.getValue();
         //gets the amount of spaces on the stack that are used (assuming all vars
         //take up 8 bytes for int, if it's less than 0 then set it to 0
-        int stackSpaces = colorPair.getKey() + 1 - regNames.length;
+        int stackSpaces = colorPair.getKey() - regNames.length;
         stackSpaces = stackSpaces >= 0 ? stackSpaces : 0;
         Map<X1Arg, X0Arg> allocMap = new HashMap<>();
         
@@ -534,10 +536,10 @@ public class PassMethods {
             int color = curr.getValue();
             X0Arg a;
             
-            if(color + 1 < regNames.length) {
+            if(color < regNames.length) {
                 allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
             } else 
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length+1)*8));
+                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
         }
         
         return new Pair(stackSpaces*8, allocMap);
@@ -575,7 +577,7 @@ public class PassMethods {
             if(cur instanceof X1addq) {
                 
                 newInstrs.add(new X0addq(X1ToX0MapConvert(((X1addq) cur).getA(), m), 
-                        X1toX0Reg(((X1addq) cur).getB())));
+                        X1ToX0MapConvert(((X1addq) cur).getB(), m)));
             } else if(cur instanceof X1callq) {
                 newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
             } else if(cur instanceof X1movq) {
