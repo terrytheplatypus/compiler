@@ -23,12 +23,16 @@ public class AdjacencyMap {
         adjMap = new HashMap<>();
     }
     
-    public boolean addEdge(X1Arg a, X1Arg b) {
+    public void addVertex(X1Arg a) {
+        adjMap.put(a, new HashSet <X1Arg>());
+    }
+    
+    public void addEdge(X1Arg a, X1Arg b) {
         if(adjMap.get(a)== null) adjMap.put(a, new HashSet<>());
         if(adjMap.get(b)== null) adjMap.put(b, new HashSet<>());
         adjMap.get(a).add(b);
         adjMap.get(b).add(a);
-        return false;
+        //return false;
     }
     public boolean isEdge(X1Arg a, X1Arg b) {
         if(adjMap.get(a)==null) return false;

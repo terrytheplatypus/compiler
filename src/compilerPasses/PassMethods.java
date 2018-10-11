@@ -313,6 +313,11 @@ public class PassMethods {
         List <X1Reg> registers = new ArrayList<>();
         for(String r:regNames) registers.add(new X1Reg(r));
         
+        //put empty values in the map for each variable
+        for(X1Var v:p.getVarList()){
+            map.addVertex(v);
+        }
+        
         //for xinstr's corresponding liveafter
         int n = -1;
         for(X1Instr i:p.getInstrList()) {
@@ -374,7 +379,8 @@ public class PassMethods {
         //because the live-after list is no longer needed after interference
         //graph is built, it should throw null to the constructor for that
         
-        map.print();
+        //next part was for testing
+        //map.print();
         return new X1Program(p.getVarList(), p.getInstrList(), p.getRetArg(), map);
         
     }
@@ -422,7 +428,7 @@ public class PassMethods {
             for(X1Arg cur:uncolored) {
                 int curSat= saturationMap.get(cur);
                 if(curSat > highestSat && uncolored.contains(cur)) {
-                    System.out.println("found new highest");
+                    //System.out.println("found new highest");
                     highestSat = curSat;
                 }/*
                 else {
@@ -446,7 +452,7 @@ public class PassMethods {
                 colorMe = highSatVertices.get(choice);
             } else if(highSatVertices.size() == 1) colorMe = highSatVertices.get(0);
             else{
-                System.out.println("Error: Did not find any nodes");
+                //System.out.println("Error: Did not find any nodes");
                 continue;
             }
             
@@ -463,8 +469,11 @@ public class PassMethods {
                 if(a instanceof X1Var)
                     neighborColors.add(colorMap.get( (X1Var) a));
             }
-            //then use Collections.max
-            int newColor = Collections.max(neighborColors)+1;
+            //then use Collections.max (if there are no neighbors just color it 0)
+            int newColor = 0;
+            if(neighborColors.size()>0) {
+                newColor = Collections.max(neighborColors)+1;
+            }
             //colorNumber = newColor+1;
             
             //put that color in the color map
@@ -482,10 +491,10 @@ public class PassMethods {
         colorNumber = Collections.max(colorMap.values())+1;
         
         //next part for testing:
-        for(Map.Entry<X1Arg,Integer> c:colorMap.entrySet()) {
-            System.out.println("Var/Reg name and color: "+c.getKey().stringify() 
-                    +", " + c.getValue());
-        } System.out.println( "color number: "+ colorNumber);
+//        for(Map.Entry<X1Arg,Integer> c:colorMap.entrySet()) {
+//            System.out.println("Var/Reg name and color: "+c.getKey().stringify() 
+//                    +", " + c.getValue());
+//        } System.out.println( "color number: "+ colorNumber);
         
         return new Pair(colorNumber, colorMap);
     }
@@ -579,7 +588,15 @@ public class PassMethods {
                 newInstrs.add(new X0addq(X1ToX0MapConvert(((X1addq) cur).getA(), m), 
                         X1ToX0MapConvert(((X1addq) cur).getB(), m)));
             } else if(cur instanceof X1callq) {
+                
+                //move all caller save register vals into stack space if they are in the
+                //map
+                
+                
+                
                 newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
+                
+                //move the register values back from stack space into the registers
             } else if(cur instanceof X1movq) {
                 newInstrs.add(new X0movq(X1ToX0MapConvert(((X1movq) cur).getA(), m), 
                         X1ToX0MapConvert(((X1movq) cur).getB(), m)));
@@ -620,6 +637,11 @@ public class PassMethods {
         
     }
     
+    public static X0Program compileRegAlloc(R0Program p) {
+        X1Program p1 = select(flatten(uniquify(p)));
+        X0Program x =  fix(assignModular(p1, regAlloc(p1)));
+        return x;
+    }
     
     //next one becomes obsolete but will stil be left in for testing.
     public static X0Program assign(X1Program p) {

@@ -21,6 +21,7 @@ public class outputTests {
             System.out.println(n++);
             System.out.println("value: "+R0Interpreter.R0Interpret(r));
             System.out.println( printX0(compile1(r)) );
+            
         }
     }
 }

@@ -20,7 +20,7 @@ import static tests.testDirectComp.runPrint;
  *
  * @author tennisers
  */
-public class RegAllocTest {
+public class RegAllocTestSample {
     public static void main(String[] args) throws IOException {
         
         //first test contains method for Set <X1Arg>
