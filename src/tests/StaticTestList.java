@@ -22,19 +22,25 @@ public class StaticTestList {
     static List <R0Program> testList = testInitializer();
     static List testInitializer() {
         ArrayList <R0Program> l = new ArrayList<>();
+        
+        //0
         l.add(new R0Program(nAdd
             (nInt(2),nInt(3))
                 
         ));
+        //1
         l.add(new R0Program(nNeg(nAdd
             (nInt(3),nInt(7))
                 )));
+        //2
         l.add(new R0Program(nLet(nVar("x"),
                                 nAdd(nInt(2),nInt(3)),
                                 nAdd(nInt(6),nVar("x")))));
+        //3
         l.add(new R0Program(nLet(nVar("x"),
                                 nRead(),
                                 nAdd(nInt(6),nVar("x")))));
+        //4
         l.add(new R0Program(nLet(nVar("yo"),
                     nAdd(nInt(7),nInt(7))
                     ,nAdd(
@@ -46,7 +52,7 @@ public class StaticTestList {
                             )
                     )
                 )));
-        //42
+        //5: value is 42
         R0Program s = new R0Program(nLet(nVar("v"), nInt(1), 
                                     nLet(nVar("w"), nInt(46), 
                                     nLet(nVar("x"), nAdd(nVar("v"), nInt(7)),
@@ -54,6 +60,7 @@ public class StaticTestList {
                                     nLet(nVar("z"), nAdd(nVar("x"), nVar("w")),
                                     nAdd(nVar("z"), nNeg(nVar("y")))))))));
         l.add(s);
+        //6
         l.add(Utils.powerOf2(10));
         return l;
     }

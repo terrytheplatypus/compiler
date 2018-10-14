@@ -12,7 +12,8 @@ import static compilerPasses.PassMethods.compileRegAlloc;
 import static compilerPasses.PassMethods.printX0;
 import java.io.IOException;
 import static tests.StaticTestList.testList;
-import static tests.testDirectComp.runPrint;
+import static tests.testDirectComp.runPrintV1;
+import static tests.testDirectComp.runPrintV2;
 
 /**
  *
@@ -23,9 +24,9 @@ public class runTestsRegAlloc {
         int n=0;
         for(R0Program r:testList) {
             System.out.println(n++);
-            if(n == 4)continue;
+            //if(n == 4)continue;
             System.out.println("Expected value: "+R0Interpreter.R0Interpret(r));
-            runPrint(compileRegAlloc(r));
+            runPrintV2(compileRegAlloc(r));
             
         }
     }

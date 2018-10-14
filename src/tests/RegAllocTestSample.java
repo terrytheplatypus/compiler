@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import static tests.StaticTestList.testList;
-import static tests.testDirectComp.runPrint;
+import static tests.testDirectComp.runPrintV1;
 
 /**
  *
@@ -35,6 +35,6 @@ public class RegAllocTestSample {
         X1Program p = select(flatten(uniquify(t)));
         X0Program x =  fix(assignModular(p, regAlloc(p)));
         System.out.print(printX0(x));
-        runPrint(x);
+        runPrintV1(x);
     }
 }

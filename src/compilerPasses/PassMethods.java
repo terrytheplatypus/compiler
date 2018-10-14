@@ -340,7 +340,7 @@ public class PassMethods {
                     if(s instanceof X1Int) s = new X1Var("_");
                     
                     
-                    if(!v.equals((X1Var) s) && !v.equals((X1Var) d)) {
+                    if(!v.equals((X1Arg) s) && !v.equals((X1Arg) d)) {
                         map.addEdge(d, (X1Var)v );
                     }
                 }
@@ -354,14 +354,14 @@ public class PassMethods {
                 }
                 
             } else if(i instanceof X1callq) {
-                X1Arg x = ((X1retq) i).getX();
-                if(x instanceof X1Var) {
+//                X1Arg x = ((X1callq) i).getX();
+//                if(x instanceof X1Var) {
                     //will implement after i implement the rest of it
                     for( X1Var v:p.getLiveAfters().get(n)) {
                         for(X1Reg r:registers) map.addEdge(r, v);
                     }
                     
-                }
+                //}
             } else if (i instanceof X1retq) {
                 //X1retq currently treated as mov
                 //but i don't think it has to do anything

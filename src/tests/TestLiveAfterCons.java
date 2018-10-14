@@ -11,8 +11,8 @@ import static R0.R0Interpreter.R0Interpret;
 import X1.X1Program;
 import static compilerPasses.PassMethods.*;
 import java.io.IOException;
-import static tests.testDirectComp.runPrint;
 import static X1.X1Interpreter.X1PrintWithLiveAfters;
+import static tests.testDirectComp.runPrintV1;
 
 /**
  *
