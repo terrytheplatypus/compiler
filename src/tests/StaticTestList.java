@@ -62,6 +62,11 @@ public class StaticTestList {
         l.add(s);
         //6
         l.add(Utils.powerOf2(10));
+        //7
+        l.add(new R0Program(nLet(nVar("puo"), nRead(),
+                            nLet(nVar("zuo"), nRead(),
+                            nAdd(nVar("puo"),nVar("zuo"))))));
+        
         return l;
     }
 }

@@ -71,7 +71,7 @@ public class testDirectComp {
                 //next line holds all the commands
                 "gcc -c runtime.c&&"
                 + "gcc temp.s runtime.o -o tempExec"
-        //+ "&& time ./tempExec"
+        + "&&./tempExec"
             },
                      null,
                     new File(curDir + "/src/tests"));
@@ -93,26 +93,7 @@ public class testDirectComp {
             System.out.println(s);
         }
 
-        //NOW try running the generated executable in a newly opened terminal
-        //first create a shell script that just runs the executable
-        File execute = new File(testDir + "/exec.sh");
-
-        PrintWriter pr2 = new PrintWriter(execute);
-        pr2.write("touch finish");
-        pr2.close();
-
-        System.out.print(executable.setExecutable(true));
-
-        Process pr = new ProcessBuilder("gnome-terminal", "-e", testDir + "/exec.sh").start();
-//        Process pr = Runtime.getRuntime().exec(new String[]
-//            {"gnome-terminal", "-e", testDir+"/exec.sh"});
-
-// Process pr =new ProcessBuilder("gnome-terminal", "-e", 
-//                  "./progrm").directory(new File("/directory/for/the/program/to/be/executed/from")).start();
-        File finish = new File(testDir + "/finish");
-        while (!finish.exists()) {
-        }
-        finish.delete();
+        
         compiledFile.delete();
         executable.delete();
     }
@@ -185,6 +166,9 @@ public class testDirectComp {
                 ProcessBuilder pb = new ProcessBuilder()
                         .directory(new File(testDir))
                         .inheritIO()
+//                        .redirectError(Redirect.PIPE)
+//                        .redirectInput(Redirect.PIPE)
+//                        .redirectOutput(Redirect.PIPE)
                         .command("bash", "-c"
                         ,"sh executor.sh");
 
@@ -194,17 +178,19 @@ public class testDirectComp {
             Thread out = new Thread(new ReadThread(proc));
             Thread in = new Thread(new WriteThread(proc));
             Thread err = new Thread(new ErrorThread(proc));
-
+            Thread term = new Thread (new TerminationThread(proc));
             
-            out.start();
-
-            err.start();
-            in.start();
+//            out.start();
+//
+//            err.start();
+//            in.start();
+            term.start();
             
             //wait for the IO to be done before deleting the exec and temp compiled file
-            out.join();
-            in.join();
-            err.join();
+            
+            term.join();
+            //out.join();
+            //err.join();
             //in.join();
         } catch (Exception e) {
             //e.printStackTrace();
@@ -224,10 +210,12 @@ public class testDirectComp {
         Thread.sleep(1);
         runPrintV2(compile2(Utils.powerOf2(n)));
         runPrintV2(compile2(tests.StaticTestList.testList.get(3)));
+        runPrintV2(compile2(tests.StaticTestList.testList.get(7)));
     }
 
     // a bad way of thread management
-    private static boolean endProcess = false;
+    volatile static boolean endProcess = false;
+    volatile static boolean requestingInput = false;
     
     //java should just have something that does this for you IMO
     //apachecommonsexec seems not much less ugly to use
@@ -243,20 +231,21 @@ public class testDirectComp {
         public void run() {
             //endProcess = false;
             BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
-
+            
+            endProcess = false;
             //System.out.println("Here is the standard output of the command:\n");
             String s = null;
             try {
                 //while ((s = stdInput.readLine()) != null) {
                 while((s = stdInput.readLine()) != null) {
                     System.out.println(s);
-                    //yes this is hacky but it is making fair assumption
                     if(s.startsWith("enter ur input")) {
-                        BufferedWriter bufferedwriter = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
-                        Scanner sc = new Scanner(System.in);
-                        bufferedwriter.write(s + "\n");
-                        bufferedwriter.flush();
+                        requestingInput = true;
+                        System.out.println("enter input:");
                     }
+                    if(s.startsWith("answer is")) 
+                        endProcess = true;
+//                    }
                 }
             } catch (IOException ex) {
                 Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
@@ -266,6 +255,25 @@ public class testDirectComp {
 
     }
 
+    private static class TerminationThread implements Runnable {
+
+        Process p;
+
+        public TerminationThread(Process p) {
+            this.p = p;
+        }
+        
+        @Override
+        public void run() {
+            while (p.isAlive()) {                
+                
+            }
+            
+        }
+        
+    }
+    
+    
     private static class WriteThread implements Runnable {
 
         Process p;
@@ -273,7 +281,9 @@ public class testDirectComp {
         public WriteThread(Process p) {
             this.p = p;
         }
-
+        
+        //this method is to check if the stream is closed
+        
         @Override
         public void run() {
             BufferedWriter bufferedwriter = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
@@ -286,23 +296,26 @@ public class testDirectComp {
             //because i don't want to do weird concurrency stuff
             //just to test it for myself
             while (s != null&& !s.equals("q")) {
-                try {
-                    s = sc.nextLine();
-                    bufferedwriter.write(s + "\n");
-                } catch (IOException ex) {
-                    Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
+                if(endProcess == true) {
+                    return;
+                }
+                if(requestingInput = true) {
+                    try {
+                        s = sc.nextLine();
+                        bufferedwriter.write(s + "\n");
+                    } catch (IOException ex) {
+                        Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
+                    } finally {requestingInput = false;}
                 }
             }
             try {
                 bufferedwriter.flush();
             } catch (IOException ex) {
-                Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
+                //Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
             } finally {
-                try {
-                    bufferedwriter.close();
-                } catch (IOException ex) {
-                    //Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                //  bufferedwriter.close();
+                //Logger.getLogger(testDirectComp.class.getName()).log(Level.SEVERE, null, ex);
+
             }
         }
 

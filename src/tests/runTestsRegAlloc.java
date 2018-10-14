@@ -7,6 +7,7 @@ package tests;
 
 import R0.R0Interpreter;
 import R0.R0Program;
+import X0.X0Program;
 import static compilerPasses.PassMethods.compile1;
 import static compilerPasses.PassMethods.compileRegAlloc;
 import static compilerPasses.PassMethods.printX0;
@@ -24,9 +25,12 @@ public class runTestsRegAlloc {
         int n=0;
         for(R0Program r:testList) {
             System.out.println(n++);
-            //if(n == 4)continue;
-            System.out.println("Expected value: "+R0Interpreter.R0Interpret(r));
-            runPrintV2(compileRegAlloc(r));
+            //if(n != 8)continue;
+            int expected = R0Interpreter.R0Interpret(r);
+            System.out.println("Expected value: "+expected);
+            X0Program compiled = compileRegAlloc(r);
+            //System.out.println(printX0(compiled));
+            runPrintV2(compiled);
             
         }
     }

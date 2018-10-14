@@ -53,7 +53,14 @@ public class AdjacencyMap {
     }
     
     public Set <X1Arg> getVarsAndRegs() {
-        return adjMap.keySet();
+        
+        Set <X1Arg> allArgs = new HashSet<>();
+        //adjMap.keySet doesn't work correctly for me (returns only Vars)
+        for(Map.Entry< X1Arg ,Set <X1Arg>> c:adjMap.entrySet()) {
+            allArgs.add(c.getKey());
+        }
+        return allArgs;
+        //return adjMap.keySet();
     }
     
     public void print () {

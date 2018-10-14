@@ -26,14 +26,14 @@ public class X1Reg implements X1Arg{
     
      @Override
     public boolean equals(Object obj) {
-        if(obj instanceof X1Var) {
-            X1Var a = (X1Var) obj;
+        if(obj instanceof X1Reg) {
+            X1Reg a = (X1Reg) obj;
             if(a.getName().equals(this.name)) {
                 return true;
             }
             else return false;
         }
-        //if not X1Var
+        //if not X1Reg
         return false;
     }
     @Override

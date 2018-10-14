@@ -26,6 +26,7 @@ import X0.*;
 import X1.AdjacencyMap;
 import static X1.ArgConversion.C0ToX1Arg;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -358,7 +359,9 @@ public class PassMethods {
 //                if(x instanceof X1Var) {
                     //will implement after i implement the rest of it
                     for( X1Var v:p.getLiveAfters().get(n)) {
-                        for(X1Reg r:registers) map.addEdge(r, v);
+                        registers.forEach((r) -> { 
+                            map.addEdge(r, v);
+                        });
                     }
                     
                 //}
@@ -387,11 +390,11 @@ public class PassMethods {
     
     /**
      * returns color graph and amount of colors
-     * @param varsAndRegs
+     * @param vars
      * @param adjMap
      * @return 
      */
-    public static Pair< Integer, Map <X1Arg, Integer> > colorGraph (List <X1Arg> varsAndRegs, AdjacencyMap adjMap) {
+    public static Pair< Integer, Map <X1Arg, Integer> > colorGraph (List <X1Arg> vars, AdjacencyMap adjMap) {
         /*
         pseudocode alg:
         W ← vertices(G)
@@ -407,15 +410,18 @@ public class PassMethods {
         //the thing which has the most ways it cannot be colored
         
         //initialize map with -1
+        
+        
+        //List <X1Arg> varsAndRegs = adjMap.
         Map <X1Arg, Integer> colorMap = new HashMap<>();
         Map <X1Arg, Integer> saturationMap = new HashMap<>();
         Set <X1Arg> uncolored = adjMap.getVarsAndRegs();
         int colorNumber = 0;
         
-        for(X1Arg v:varsAndRegs) {
+        for(X1Arg v:uncolored) {
             colorMap.put(v, -1);
         }
-        for(X1Arg v:varsAndRegs) {
+        for(X1Arg v:uncolored) {
             saturationMap.put(v, 0);
         }
         while(uncolored.size() > 0) {
@@ -426,6 +432,10 @@ public class PassMethods {
             int highestSat = -999;
             //for(Map.Entry<X1Arg, Integer> cur:saturationMap.entrySet()) {
             for(X1Arg cur:uncolored) {
+                if(saturationMap.get(cur) == null) {
+                    //System.out.println("no edges are found for " + cur.stringify());
+                    continue;
+                }
                 int curSat= saturationMap.get(cur);
                 if(curSat > highestSat && uncolored.contains(cur)) {
                     //System.out.println("found new highest");
@@ -480,8 +490,10 @@ public class PassMethods {
             colorMap.put(colorMe, newColor);
             //add 1 to the saturation map value for all its neighbors
             for(X1Arg a:neighbors) {
-                int oldSat = saturationMap.get( (X1Var) a);
-                saturationMap.put((X1Var) a, oldSat+1);
+                if(saturationMap.get( (X1Arg) a) == null) 
+                    continue;
+                int oldSat = saturationMap.get( (X1Arg) a);
+                saturationMap.put((X1Arg) a, oldSat+1);
                 
             }
             uncolored.remove(colorMe);
@@ -532,9 +544,13 @@ public class PassMethods {
         List <X1Arg> argList = new ArrayList(p2.getVarList());
         Pair<Integer, Map <X1Arg, Integer>> colorPair = colorGraph(argList, p2.getAdjMap());
         Map <X1Arg, Integer> m = colorPair.getValue();
+        int numColors = colorPair.getKey();
         //gets the amount of spaces on the stack that are used (assuming all vars
         //take up 8 bytes for int, if it's less than 0 then set it to 0
-        int stackSpaces = colorPair.getKey() - regNames.length;
+        
+        //there are extra spaces in case there's a function call,
+        // because then the reg values need to get pushed onto the stack
+        int stackSpaces = colorPair.getKey() + regNames.length;
         stackSpaces = stackSpaces >= 0 ? stackSpaces : 0;
         Map<X1Arg, X0Arg> allocMap = new HashMap<>();
         
@@ -544,11 +560,18 @@ public class PassMethods {
             //n++;
             int color = curr.getValue();
             X0Arg a;
-            
-            if(color < regNames.length) {
-                allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
-            } else 
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
+            if(curr.getKey() instanceof X1Var) {
+                if(color < regNames.length) {
+                    allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
+                } else  {
+                    //allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
+                    allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color)*8));
+                }
+            } else if(curr.getKey() instanceof X1Reg) {
+                String regName = curr.getKey().stringify();
+                int regIndex = Arrays.asList(regNames).lastIndexOf(regName);
+                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (numColors + regIndex)*8));
+            }
         }
         
         return new Pair(stackSpaces*8, allocMap);
@@ -591,12 +614,28 @@ public class PassMethods {
                 
                 //move all caller save register vals into stack space if they are in the
                 //map
-                
-                
+                newInstrs.add(new X0Comment("throwing regs into stack"));
+                for(String c :regNames) {
+                    
+                    X1Arg r = new X1Reg(c);
+                    if(m.get(r)!= null){
+                        newInstrs.add(new X0movq(new X0Reg(r.stringify()), m.get(r)));
+                    }
+                   
+                }
+                 newInstrs.add(new X0Comment("done throwing regs into stack"));
                 
                 newInstrs.add(new X0callq(((X1callq) cur).getLabel()));
                 
                 //move the register values back from stack space into the registers
+                
+                for(String c :regNames) {
+                    
+                    X1Reg r = new X1Reg(c);
+                    if(m.get(r)!= null)
+                        newInstrs.add(new X0movq(m.get(r),new X0Reg(r.stringify()) ));
+                }
+                
             } else if(cur instanceof X1movq) {
                 newInstrs.add(new X0movq(X1ToX0MapConvert(((X1movq) cur).getA(), m), 
                         X1ToX0MapConvert(((X1movq) cur).getB(), m)));
@@ -921,6 +960,8 @@ public class PassMethods {
                 X0subq i2 = (X0subq) i;
                 prog += "subq " + printX0Arg(i2.getA()) 
                         +"," + printX0Arg(i2.getB());
+            } else if(i instanceof X0Comment) {
+                prog +="#"+ ((X0Comment) i).getText();
             }
             prog+="\n";
         }
