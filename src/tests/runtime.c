@@ -10,7 +10,8 @@ return;
 
 int readint(){
 int n;
-printf("enter ur input: ");
+printf("enter ur input: \n");
+fflush(stdout);
 scanf("%d", &n);
 return n;
 }
