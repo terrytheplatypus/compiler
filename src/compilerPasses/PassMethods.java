@@ -890,10 +890,15 @@ public class PassMethods {
                 } else newInstrs.add(c);
             } else if(c instanceof X0movq) {
                 X0movq m = (X0movq) c;
-                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset) {
+                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset
+                        && !m.getA().equals(m.getB())) {
                     newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
                     newInstrs.add(new X0movq(new X0Reg("rax"),m.getB() ));
-                } else newInstrs.add(c);
+                } else if(m.getA().equals(m.getB())) {
+                    //if something is moved into itself
+                    continue;
+                }
+                else newInstrs.add(c);
             } else newInstrs.add(c);
         }
         return new X0Program(newInstrs);
