@@ -9,7 +9,7 @@ package C0;
  *
  * @author david
  */
-public class C0Int extends C0Arg{
+public class C0Int implements C0Literal{
     private int val;
 
     public C0Int(int val) {

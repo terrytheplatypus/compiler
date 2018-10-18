@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class R0LitBool implements R0Bool,  R0Literal{
 
-    public static enum boolVals {TRUE, FALSE};
+//    public static enum boolVals {TRUE, FALSE};
     
     private boolean val;
 
@@ -24,7 +24,7 @@ public class R0LitBool implements R0Bool,  R0Literal{
     
     @Override
     public String stringify() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return String.valueOf(val);
     }
     public boolean getVal() {
         return val;

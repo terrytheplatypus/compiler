@@ -11,7 +11,7 @@ import R0.R0Var;
  *
  * @author david
  */
-public class C0Var extends C0Arg{
+public class C0Var implements C0Arg{
     private String name;
 
     public C0Var(String name) {

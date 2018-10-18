@@ -133,7 +133,7 @@ public class testDirectComp {
                 //print program x to a temporary file which is put in the "cygwin" directory, and deleted after
                 //compilation
                 String curDir = System.getProperty("user.dir");
-                System.out.println(curDir);
+//                System.out.println(curDir);
                 String testDir = curDir + "/src/tests";
 
 //                proc = Runtime.getRuntime().exec(new String[]{"bash", "-i",
@@ -147,7 +147,7 @@ public class testDirectComp {
                 //make a separate sh file with the commands
                 
                 executor = new File(testDir+"/executor.sh");
-                System.out.println(executor.getPath());
+                //System.out.println(executor.getPath());
                 String command = "echo \"assembling\n\"&&"
                                 + "gcc -c runtime.c&&"
                                 + "gcc temp.s runtime.o -o tempExec"
@@ -196,7 +196,7 @@ public class testDirectComp {
             //e.printStackTrace();
         }
         compiledFile.delete();
-        //executable.delete();
+        executable.delete();
     }
 
     

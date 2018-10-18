@@ -9,6 +9,6 @@ package R0;
  *
  * @author tennisers
  */
-public interface R0Literal {
+public interface R0Literal extends R0Expression {
     public abstract String stringify () ;
 }

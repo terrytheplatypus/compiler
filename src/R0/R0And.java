@@ -15,12 +15,12 @@ import java.util.List;
  */
 public class R0And  implements R0Bool{
     
-    R0Bool a;
-    R0Bool b;
+    private R0Expression a;
+    private R0Expression b;
 
     //if the constructors are bools, 
     //then there's no need for type checking
-    public R0And(R0Bool a, R0Bool b) {
+    public R0And(R0Expression a, R0Expression b) {
         this.a = a;
         this.b = b;
     }
@@ -33,5 +33,14 @@ public class R0And  implements R0Bool{
        new ArrayList<>(Arrays.asList(a,b));
        return childs;    
     }
+
+    public R0Expression getA() {
+        return a;
+    }
+
+    public R0Expression getB() {
+        return b;
+    }
+    
     
 }

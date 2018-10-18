@@ -66,7 +66,29 @@ public class StaticTestList {
         l.add(new R0Program(nLet(nVar("puo"), nRead(),
                             nLet(nVar("zuo"), nRead(),
                             nAdd(nVar("puo"),nVar("zuo"))))));
+        //START OF CONTROL FLOW TESTS
+        //8, simple if test
+        l.add(new R0Program(nIf(nCmp(nEq(), nInt(72), nAdd(nInt(15), nInt(55)))
+        ,nInt(77),nInt(44))));
         
+        //9
+        //next test: read two ints, x1, x2, see if first one is greater than 70,
+        //see if next one is not (greater than or equal to 59) (less than 59)
+        //if both are true (and) return true, if not, return false.
+        l.add(nProg(
+                nIf(nAnd(
+                        nCmp(nGr(), nRead(), nInt(70)), nNot(nCmp(nGrEq(), nRead(), nInt(59)))),
+                            nLitBool(true),
+                            nLitBool(false))));
+        
+        //next test: letting x equal a literal bool value (mess with it to see what happens if
+        //you give bad type, if you're not implementing type checker
+        l.add(nProg(nLet(nVar("x"), 
+                nLitBool(true),
+                //nInt(6),
+                nAnd(nVar("x"), nLitBool(false)))));
+        
+        //next, test nested if combined with let
         return l;
     }
 }

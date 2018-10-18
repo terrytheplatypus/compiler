@@ -14,15 +14,13 @@ import java.util.List;
  * @author tennisers
  */
 public class R0Not implements R0Bool{
-    R0Bool x;
+    R0Expression x;
 
-    public R0Not(R0Bool x) {
+    public R0Not(R0Expression x) {
         this.x = x;
     }
-
     
-    
-    public R0Bool getX() {
+    public R0Expression getX() {
         return x;
     }
 

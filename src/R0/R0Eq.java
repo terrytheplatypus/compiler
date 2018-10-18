@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package C0;
+package R0;
 
 /**
  *
- * @author david
+ * @author tennisers
  */
-public interface C0Arg extends C0Expression {
+public class R0Eq implements R0CmpOp {
     
 }

@@ -15,11 +15,11 @@ import java.util.List;
  */
 public class R0If implements R0Expression{
     
-    R0Bool cond;
+    R0Expression cond;
     R0Expression retIf;
     R0Expression retElse;
 
-    public R0If(R0Bool cond, R0Expression retIf, R0Expression retElse) {
+    public R0If(R0Expression cond, R0Expression retIf, R0Expression retElse) {
         this.cond = cond;
         this.retIf = retIf;
         this.retElse = retElse;
@@ -34,7 +34,7 @@ public class R0If implements R0Expression{
        return childs;    
     }
 
-    public R0Bool getCond() {
+    public R0Expression getCond() {
         return cond;
     }
 

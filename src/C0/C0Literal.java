@@ -7,8 +7,8 @@ package C0;
 
 /**
  *
- * @author david
+ * @author tennisers
  */
-public interface C0Arg extends C0Expression {
+public interface C0Literal extends C0Arg {
     
 }

@@ -9,6 +9,6 @@ package R0;
  *
  * @author tennisers
  */
-public class R0Equals implements R0CmpOp {
+public class R0Gr implements R0CmpOp{
     
 }
