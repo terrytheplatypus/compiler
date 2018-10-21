@@ -17,11 +17,9 @@ import X1.X1Reg;
 import X1.X1Int;
 import X1.X1Program;
 import C0.*;
+import C0.C0Cmp.opValue;
 import R0.*;
-import static R0.ConciseConstructors.nAdd;
-import static R0.ConciseConstructors.nLet;
-import static R0.ConciseConstructors.nNeg;
-import static R0.ConciseConstructors.nVar;
+import static R0.ConciseConstructors.*;
 import X0.*;
 import X1.AdjacencyMap;
 import static X1.ArgConversion.C0ToX1Arg;
@@ -36,6 +34,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import javafx.util.Pair;
+import static C0.C0Cmp.*;
+import static C0.C0Cmp.opValue.EQ;
 
 /**
  *
@@ -63,8 +63,9 @@ public class PassMethods {
     //very bad space-wise, optimization would be to make a static array of maps,
     //and pass the index of the new map in the uniquifyRec call after doing something
     //w/ let expre
+    //this whole function would be a lot more compact in a functional language
     private static R0Expression uniquifyRecursive(R0Expression e, Map<String, String> varNameList) {
-        if(e.getChildren()==null) {
+        
             if(e instanceof R0Int) {
                 return e;
             }
@@ -75,7 +76,7 @@ public class PassMethods {
             else if(e instanceof R0Read) {
                 return e;
             }
-        }
+        
         else if(e instanceof R0Let) {
             List <R0Expression> exps = e.getChildren();
             R0Var x = (R0Var) exps.get(0);
@@ -94,11 +95,28 @@ public class PassMethods {
             return nAdd(uniquifyRecursive(cs.get(0),varNameList),
                     uniquifyRecursive(cs.get(1),varNameList));
         }
+        //adding if/else stuff
+        else if(e instanceof R0If) {
+            List<R0Expression> cs = e.getChildren();
+            return nIf(uniquifyRecursive(cs.get(0), varNameList),
+                    uniquifyRecursive(cs.get(1), varNameList),
+                    uniquifyRecursive(cs.get(2), varNameList));
+        } else if(e instanceof R0Cmp) {
+            List<R0Expression> cs = e.getChildren();
+            return nCmp(((R0Cmp) e).getOp(), 
+                    uniquifyRecursive(cs.get(0), varNameList), 
+                    uniquifyRecursive(cs.get(1), varNameList));
+        } else if ( e instanceof R0Not) {
+            List<R0Expression> cs = e.getChildren();
+            return nNot(uniquifyRecursive(cs.get(0), varNameList));
+        }
+        if(e instanceof R0LitBool) {
+                return e;
+        }
         
         else{
             return null; 
         }
-        return null;
     }
     
     //flatten
@@ -172,6 +190,100 @@ public class PassMethods {
             arg = fe2.getReturnArg();
             return new C0Program(vars, stmts, arg);
         }
+        
+        //adding if/else stuff
+        else if(e instanceof R0If) {
+            
+            boolean ifOnly = false;
+            boolean elseOnly = false;
+            List<R0Expression> cs = e.getChildren();
+            //opValue op = e.getChildren().get(0)
+            //if e is an instance of variable, then convert it to
+            // (eq var TRUE)
+            R0Expression cond1 = e.getChildren().get(0);
+            if(cond1 instanceof R0Var) {
+                cond1 = nCmp(nEq(),cond1, nLitBool(true));
+            } else if(cond1 instanceof R0LitBool) {
+                //a small optimization that is added here:
+                //if the literal bool is true, you only need to compile the if branch,
+                //and if the literal bool is false, you only need to compile the else branch.
+                //possibly unwise to add this in before getting it to work the normal way
+                //but i wanted to try it.
+                if(((R0LitBool) cond1).getVal()) ifOnly = true;
+                else elseOnly = true;
+            }
+            
+            C0Cmp finalCmp = null;
+            if(!ifOnly && !elseOnly && (cond1 instanceof R0Cmp)) {
+                
+                //this part should not actually generate the C0Cmp itself,
+                //the C0Cmp case should do that.this part should only compare the return value
+                //of the comparison to true
+                C0Var condv = new C0Var("cond_"+String.valueOf(numUniqueVars++));
+                R0Cmp cmp = (R0Cmp) cond1;
+//                opValue op = R0CmpOpToString(cmp.getOp() );
+                C0Program cond2 = flattenRecursive(cond1);
+                vars.addAll(cond2.getVarList());
+                stmts.addAll(cond2.getStmtList());
+//                R0Expression a = cmp.getA();
+//                R0Expression b = cmp.getB();
+//                
+                finalCmp = new C0Cmp(EQ, 
+                        cond2.getReturnArg() , 
+                        new C0LitBool(true));
+            }
+            
+            C0Program ifs = flattenRecursive(e.getChildren().get(1));
+            C0Program elses = flattenRecursive(e.getChildren().get(2));
+            
+            vars.addAll(elses.getVarList());
+            
+            //arg will be ini
+            arg = null;
+            
+                C0Var ifv = new C0Var("if_"+String.valueOf(numUniqueVars++));
+            
+            if(!elseOnly) {
+                vars.addAll(ifs.getVarList());
+                stmts.addAll(ifs.getStmtList());
+                //assign ifs.returnArg to ifv
+                stmts.add(new C0Stmt(ifv, ifs.getReturnArg()));
+                
+                //arg =ifs.getReturnArg();
+                
+            }
+            
+            if(!ifOnly) {
+                
+                vars.addAll(elses.getVarList());
+                stmts.addAll(elses.getStmtList());
+                stmts.add(new C0Stmt(ifv, elses.getReturnArg()));
+                arg = elses.getReturnArg();
+            }
+            
+            return new C0Program(vars, stmts, arg);
+            
+        } else if(e instanceof R0Cmp) {
+            C0Var cmpv = new C0Var("cmp_"+String.valueOf(numUniqueVars++));
+            opValue op = R0CmpOpToString(((R0Cmp) e).getOp());
+            List<R0Expression> cs = e.getChildren();
+            C0Program a = flattenRecursive(((R0Cmp) e).getA());
+            C0Program b = flattenRecursive(((R0Cmp) e).getB());
+            vars.addAll(a.getVarList());
+            vars.addAll(b.getVarList());
+            stmts.addAll(a.getStmtList());
+            stmts.addAll(b.getStmtList());
+            arg = cmpv;
+            
+            
+        } else if ( e instanceof R0Not) {
+            List<R0Expression> cs = e.getChildren();
+            
+        }
+         if(e instanceof R0LitBool) {
+                
+            }
+        
         return null;
     }
     

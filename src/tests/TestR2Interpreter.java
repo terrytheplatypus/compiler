@@ -24,7 +24,7 @@ public class TestR2Interpreter {
             System.out.println(n++);
             if(n < 8)continue;
             
-            String expected = R2Interpreter.R0Interpret(r).stringify();
+            String expected = R2Interpreter.R2Interpret(r).stringify();
             System.out.println("Expected value: "+expected);
             //X0Program compiled = compileRegAlloc(r);
             //System.out.println(printX0(compiled));

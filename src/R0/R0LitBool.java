@@ -31,7 +31,7 @@ public class R0LitBool implements R0Bool,  R0Literal{
     }
     @Override
     public List<R0Expression> getChildren() {
-        return new ArrayList<>();
+        return null;
     }
     
     @Override

@@ -18,7 +18,7 @@ public class R2Interpreter {
     
     //both the new R0Interpret and the ExpressionInterpret and the recursive
     //helper should return R0Literal (either boolean or int)
-    public static R0Literal R0Interpret(R0Program p) throws Exception {
+    public static R0Literal R2Interpret(R0Program p) throws Exception {
         return ExpressionInterpret(p.getExp());
     }
     

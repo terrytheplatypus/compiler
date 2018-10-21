@@ -9,7 +9,7 @@ package C0;
  *
  * @author tennisers
  */
-public class C0Not {
+public class C0Not implements C0Expression{
     private C0Arg x;
 
     public C0Not(C0Arg x) {
