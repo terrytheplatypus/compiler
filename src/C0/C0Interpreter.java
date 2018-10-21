@@ -34,10 +34,12 @@ public class C0Interpreter {
             varValues.put(v.getName(), Integer.MIN_VALUE);
         //iterate thru all statements and update map accordingly
         
-        for(C0Stmt s: p.getStmtList()) {
+        for(C0Stmt s1: p.getStmtList()) {
             
-            C0Expression e = s.getExp();
-            String x = s.getX().getName();
+            //in C0, all statements are assignments
+            C0Assign s2 = (C0Assign) s1;
+            C0Expression e = s2.getExp();
+            String x = s2.getX().getName();
             
             //rhs is int
             if(e instanceof C0Int) {
@@ -66,23 +68,7 @@ public class C0Interpreter {
             }
             //rhs is add
             if(e instanceof C0Add) {
-                int first,second;
-                C0Arg a = ((C0Add) e).getA();
-                C0Arg b = ((C0Add) e).getB();
-                //in both cases, if it's not an int, it's a var
-                if(a instanceof C0Int)
-                    first = ((C0Int) a).getVal();
-                else  {
-                    String var2 = ((C0Var) a).getName();
-                    first = varValues.get(var2) ;
-                }
-                if(b instanceof C0Int)
-                    second = ((C0Int) b).getVal();
-                else {
-                    String var2 = ((C0Var) b).getName();
-                    second = varValues.get(var2) ;
-                }
-                varValues.put(x, first+second);
+                
             }
         }
         //return the returnArg
@@ -95,10 +81,11 @@ public class C0Interpreter {
         return -9999;
     }
     static public void C0PrintProgram(C0Program p) {
-        for(C0Stmt s: p.getStmtList()) {
+        for(C0Stmt s1: p.getStmtList()) {
             
-            C0Expression e = s.getExp();
-            String x = s.getX().getName();
+            C0Assign s2 = (C0Assign) s1;
+            C0Expression e = s2.getExp();
+            String x = s2.getX().getName();
             
             //rhs is int
             if(e instanceof C0Int) {

@@ -34,11 +34,12 @@ public class C1Interpreter {
             varValues.put(v.getName(), Integer.MIN_VALUE);
         //iterate thru all statements and update map accordingly
         
-        for(C0Stmt s: p.getStmtList()) {
+        for(C0Stmt s1: p.getStmtList()) {
             
-            C0Expression e = s.getExp();
-            String x = s.getX().getName();
-            
+            C0Assign s2 = (C0Assign) s1;
+            C0Expression e = s2.getExp();
+            String x = s2.getX().getName();
+    
             //rhs is int
             if(e instanceof C0Int) {
                 varValues.put(x, ((C0Int) e).getVal());
@@ -95,11 +96,12 @@ public class C1Interpreter {
         return -9999;
     }
     static public void C0PrintProgram(C0Program p) {
-        for(C0Stmt s: p.getStmtList()) {
+        for(C0Stmt s1: p.getStmtList()) {
             
-            C0Expression e = s.getExp();
-            String x = s.getX().getName();
-            
+            C0Assign s2 = (C0Assign) s1;
+            C0Expression e = s2.getExp();
+            String x = s2.getX().getName();
+    
             //rhs is int
             if(e instanceof C0Int) {
                 System.out.println( x + "="+ ((C0Int) e).getVal());

@@ -141,7 +141,7 @@ public class PassMethods {
         else if(e instanceof R0Read) {
             C0Var rv = new C0Var("read_"+String.valueOf(numUniqueVars++));
             vars.add(rv);
-            C0Stmt assignRead = new C0Stmt(rv, new C0Read());
+            C0Assign assignRead = new C0Assign(rv, new C0Read());
             stmts.add(assignRead);
             return new C0Program(vars, stmts, rv);
         }
@@ -152,7 +152,7 @@ public class PassMethods {
             vars.add(nv);
             vars.addAll(fe.getVarList());
             stmts.addAll(fe.getStmtList());
-            stmts.add(new C0Stmt(nv, new C0Neg(fe.getReturnArg())));
+            stmts.add(new C0Assign(nv, new C0Neg(fe.getReturnArg())));
             return new C0Program(vars, stmts, nv);
         }
         //add F(e1) = <vs1, ss1, ea1>, F(e2) = <vs2, ss2, ea2> = F(e2)
@@ -166,7 +166,7 @@ public class PassMethods {
             vars.addAll(fe2.getVarList());
             stmts.addAll(fe1.getStmtList());
             stmts.addAll(fe2.getStmtList());
-            stmts.add(new C0Stmt(av, new C0Add(
+            stmts.add(new C0Assign(av, new C0Add(
                     fe1.getReturnArg(), 
                     fe2.getReturnArg())));
             return new C0Program(vars, stmts, av);
@@ -185,7 +185,7 @@ public class PassMethods {
             vars.addAll(fe2.getVarList());
             vars.add(x);
             stmts.addAll(fe1.getStmtList());
-            stmts.add(new C0Stmt(x, fe1.getReturnArg()));
+            stmts.add(new C0Assign(x, fe1.getReturnArg()));
             stmts.addAll(fe2.getStmtList());
             arg = fe2.getReturnArg();
             return new C0Program(vars, stmts, arg);
@@ -196,6 +196,10 @@ public class PassMethods {
             
             boolean ifOnly = false;
             boolean elseOnly = false;
+            
+            List <C0Stmt> ifStmts = new ArrayList<>();
+            
+            List <C0Stmt> elseStmts = new ArrayList<>();
             List<R0Expression> cs = e.getChildren();
             //opValue op = e.getChildren().get(0)
             //if e is an instance of variable, then convert it to
@@ -204,7 +208,7 @@ public class PassMethods {
             if(cond1 instanceof R0Var) {
                 cond1 = nCmp(nEq(),cond1, nLitBool(true));
             } else if(cond1 instanceof R0LitBool) {
-                //a small optimization that is added here:
+                //a small optimization could added here:
                 //if the literal bool is true, you only need to compile the if branch,
                 //and if the literal bool is false, you only need to compile the else branch.
                 //possibly unwise to add this in before getting it to work the normal way
@@ -245,10 +249,11 @@ public class PassMethods {
             
             if(!elseOnly) {
                 vars.addAll(ifs.getVarList());
-                stmts.addAll(ifs.getStmtList());
+                //stmts.addAll(ifs.getStmtList());
                 //assign ifs.returnArg to ifv
-                stmts.add(new C0Stmt(ifv, ifs.getReturnArg()));
-                
+                //stmts.add(new C0Stmt(ifv, ifs.getReturnArg()));
+                ifStmts.addAll(ifs.getStmtList());
+                ifStmts.add(new C0Assign(ifv, ifs.getReturnArg()));
                 //arg =ifs.getReturnArg();
                 
             }
@@ -256,10 +261,18 @@ public class PassMethods {
             if(!ifOnly) {
                 
                 vars.addAll(elses.getVarList());
-                stmts.addAll(elses.getStmtList());
-                stmts.add(new C0Stmt(ifv, elses.getReturnArg()));
-                arg = elses.getReturnArg();
+                //stmts.addAll(elses.getStmtList());
+                //stmts.add(new C0Stmt(ifv, elses.getReturnArg()));
+                elseStmts .addAll(elses.getStmtList());
+                elseStmts.add(new C0Assign(ifv, elses.getReturnArg()));
+                //arg = elses.getReturnArg();
             }
+            
+            //if neither ifOnly or elseOnly are true, add both to if statement
+            if(!ifOnly && !elseOnly) {
+                stmts.add(new C0If(finalCmp, ifStmts, elseStmts));
+            }
+            //
             
             return new C0Program(vars, stmts, arg);
             
@@ -274,27 +287,38 @@ public class PassMethods {
             stmts.addAll(a.getStmtList());
             stmts.addAll(b.getStmtList());
             arg = cmpv;
-            
+            stmts.add(new C0Assign(cmpv, 
+                    new C0Cmp(op, a.getReturnArg(), b.getReturnArg()) ));
+            return new C0Program(vars, stmts, arg);
             
         } else if ( e instanceof R0Not) {
+            C0Var notv = new C0Var("not_"+String.valueOf(numUniqueVars++));
+            arg = notv;
             List<R0Expression> cs = e.getChildren();
+            C0Program x = flattenRecursive(((R0Not) e).getX());
+            vars.addAll(x.getVarList());
+            stmts.addAll(x.getStmtList());
+            stmts.add(new C0Assign(notv, x.getReturnArg()));
+            return new C0Program(vars, stmts, arg);
             
         }
          if(e instanceof R0LitBool) {
-                
-            }
+            return new C0Program(vars, stmts, new C0LitBool(((R0LitBool) e).getVal()));
+         }
         
         return null;
     }
     
     // assumptions made by select and assign pass: rax is only register used in select pass
-    public static X1Program select(C0Program p) {
+    //this version of select pass assumes that all C0 statements are assignments
+    public static X1Program selectV1(C0Program p) {
         
         List <X1Var> vars = new ArrayList<>();
         List <X1Instr> instrs = new ArrayList<>();
          
         
-        for(C0Stmt s:p.getStmtList()) {
+        for(C0Stmt s1:p.getStmtList()) {
+            C0Assign s = (C0Assign) s1;
             X1Var x = new X1Var(s.getX().getName());
             vars.add(x);
             C0Expression e = s.getExp();
@@ -789,7 +813,7 @@ public class PassMethods {
     }
     
     public static X0Program compileRegAlloc(R0Program p) {
-        X1Program p1 = select(flatten(uniquify(p)));
+        X1Program p1 = selectV1(flatten(uniquify(p)));
         X0Program x =  fix(assignModular(p1, regAlloc(p1)));
         return x;
     }
@@ -1022,7 +1046,7 @@ public class PassMethods {
      * @return 
      */
     public static X0Program compile1(R0Program p) {
-        return fix(assign(select(flatten(uniquify(p)))));
+        return fix(assign(selectV1(flatten(uniquify(p)))));
     }
     
     /**
@@ -1031,7 +1055,7 @@ public class PassMethods {
      * @return 
      */
     public static X0Program compile2(R0Program p) {
-        return fix(assignWithRegs(select(flatten(uniquify(p)))));
+        return fix(assignWithRegs(selectV1(flatten(uniquify(p)))));
     }
     
     public static String printX0(X0Program p){

@@ -27,7 +27,7 @@ public class TestLiveAfterCons {
                                     nLet(nVar("z"), nAdd(nVar("x"), nVar("w")),
                                     nAdd(nVar("z"), nNeg(nVar("y")))))))));
         System.out.println(R0Interpret(s));
-        X1Program x = uncoverLive(select(flatten(uniquify(s))));
+        X1Program x = uncoverLive(selectV1(flatten(uniquify(s))));
         X1PrintWithLiveAfters(x);
 //        x.printLiveAfters();
         //int five = 2+ 2;

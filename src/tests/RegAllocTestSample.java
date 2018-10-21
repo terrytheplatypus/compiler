@@ -32,7 +32,7 @@ public class RegAllocTestSample {
         
         R0Program t = testList.get(5);
         //first test that it doesn't crash partway through
-        X1Program p = select(flatten(uniquify(t)));
+        X1Program p = selectV1(flatten(uniquify(t)));
         X0Program x =  fix(assignModular(p, regAlloc(p)));
         System.out.print(printX0(x));
         runPrintV1(x);

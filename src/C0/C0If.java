@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author tennisers
  */
-public class C0If {
+public class C0If implements C0Stmt{
     private C0Cmp cond;
     private List <C0Stmt> ifStmts;
     private List <C0Stmt> elseStmts;

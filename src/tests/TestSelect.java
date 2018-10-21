@@ -52,7 +52,7 @@ public class TestSelect {
             C0Program pp = flatten(p);
             C0PrintProgram(pp);
             System.out.println("value after flatten: " + C0Interpret(pp));
-            X1Program ppp = select(pp);
+            X1Program ppp = selectV1(pp);
             System.out.println("value after select: " + X1Interpret(ppp));
             
         }
