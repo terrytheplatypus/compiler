@@ -10,5 +10,5 @@ package C0;
  * @author tennisers
  */
 public interface C0Literal extends C0Arg {
-    
+    public String stringify();
 }

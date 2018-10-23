@@ -89,6 +89,25 @@ public class StaticTestList {
                 nAnd(nVar("x"), nLitBool(false)))));
         
         //next, test nested if combined with let
+        
+        /*  y =     
+            let(x = read
+                if(x <40)
+                    if(x>20)
+                        return 1
+                    else return 2
+                return 3
+        so if 20<x<40, y is 1, if x <=20, y is 2, if x >= 40, y is 3.
+        These aren't enough test cases to guarantee that it works for everything
+        but it's a good variety.
+        */
+        l.add(new R0Program(nLet(nVar("y"),
+                    nLet(nVar("x"), nRead(),
+                            nIf(nCmp(nLess(),nVar("x"), nInt(40)),
+                                    nIf(nCmp(nGr(),nVar("x"),nInt(20)),
+                                            nInt(1),
+                                            nInt(2)),
+                                    nInt(3))),nVar("y"))));
         return l;
     }
 }

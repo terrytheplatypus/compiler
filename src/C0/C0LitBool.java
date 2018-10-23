@@ -39,6 +39,11 @@ public class C0LitBool implements C0Literal{
     public int hashCode() {
         return new Boolean(val).hashCode(); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public String stringify() {
+        return String.valueOf(val);
+    }
     
     
 }

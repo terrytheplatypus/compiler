@@ -21,5 +21,10 @@ public class C0Int implements C0Literal{
     public int getVal() {
         return val;
     }
+
+    @Override
+    public String stringify() {
+       return String.valueOf(val);
+    }
     
 }

@@ -119,9 +119,13 @@ public class PassMethods {
         }
     }
     
-    //flatten
-    //IIMPORTANT: C0Program is assumed to have no duplicate variable names
-    //so it should only be run with a uniquified R0Program
+    /**
+     * IIMPORTANT: C0Program is assumed to have no duplicate variable names
+    /* so it should only be run with a uniquified R0Program,
+    * also if run with un-uniquified program, it may run into name collisions
+     * @param p
+     * @return 
+     */
     public static C0Program flatten(R0Program p){
         
         return flattenRecursive(p.getExp());
@@ -192,6 +196,22 @@ public class PassMethods {
         }
         
         //adding if/else stuff
+        if(e instanceof R0And) {
+            
+            C0Var av = new C0Var("and_"+String.valueOf(numUniqueVars++));
+            arg = av;
+            C0Program fe1 = flattenRecursive(e.getChildren().get(0));
+            C0Program fe2 = flattenRecursive(e.getChildren().get(1));
+            vars.addAll(fe1.getVarList());
+            vars.addAll(fe2.getVarList());
+            
+            stmts.addAll(fe1.getStmtList());
+            stmts.addAll(fe2.getStmtList());
+            stmts.add(new C0Assign(av, 
+                    new C0And(fe1.getReturnArg(),fe2.getReturnArg())));
+            return new C0Program(vars, stmts, arg);
+            
+        }
         else if(e instanceof R0If) {
             
             boolean ifOnly = false;
@@ -204,26 +224,39 @@ public class PassMethods {
             //opValue op = e.getChildren().get(0)
             //if e is an instance of variable, then convert it to
             // (eq var TRUE)
-            R0Expression cond1 = e.getChildren().get(0);
-            if(cond1 instanceof R0Var) {
-                cond1 = nCmp(nEq(),cond1, nLitBool(true));
-            } else if(cond1 instanceof R0LitBool) {
-                //a small optimization could added here:
-                //if the literal bool is true, you only need to compile the if branch,
-                //and if the literal bool is false, you only need to compile the else branch.
-                //possibly unwise to add this in before getting it to work the normal way
-                //but i wanted to try it.
-                if(((R0LitBool) cond1).getVal()) ifOnly = true;
-                else elseOnly = true;
-            }
             
             C0Cmp finalCmp = null;
+            R0Expression cond1 = e.getChildren().get(0);
+            if(!(cond1 instanceof R0Cmp)) {
+                if(cond1 instanceof R0LitBool) {
+                   //a small optimization could added here:
+                   //if the literal bool is true, you only need to compile the if branch,
+                   //and if the literal bool is false, you only need to compile the else branch.
+                   //possibly unwise to add this in before getting it to work the normal way
+                   //but i wanted to try it.
+                   if(((R0LitBool) cond1).getVal()) ifOnly = true;
+                   else elseOnly = true;
+               } else {
+
+//                    if(cond1 instanceof R0Var) {
+//                   cond1 = nCmp(nEq(),cond1, nLitBool(true));
+//                   }
+                    C0Program flatCond = flattenRecursive(cond1);
+                    vars.addAll(flatCond.getVarList());
+                    stmts.addAll(flatCond.getStmtList());
+                    //cond1 = nCmp(nEq(),cond1, nLitBool(true));
+                    finalCmp = new C0Cmp(EQ, 
+                        flatCond.getReturnArg() , 
+                        new C0LitBool(true));
+                }
+            }
+            
             if(!ifOnly && !elseOnly && (cond1 instanceof R0Cmp)) {
                 
                 //this part should not actually generate the C0Cmp itself,
                 //the C0Cmp case should do that.this part should only compare the return value
                 //of the comparison to true
-                C0Var condv = new C0Var("cond_"+String.valueOf(numUniqueVars++));
+                
                 R0Cmp cmp = (R0Cmp) cond1;
 //                opValue op = R0CmpOpToString(cmp.getOp() );
                 C0Program cond2 = flattenRecursive(cond1);
@@ -240,12 +273,14 @@ public class PassMethods {
             C0Program ifs = flattenRecursive(e.getChildren().get(1));
             C0Program elses = flattenRecursive(e.getChildren().get(2));
             
-            vars.addAll(elses.getVarList());
+            //vars.addAll(elses.getVarList());
             
             //arg will be ini
-            arg = null;
             
-                C0Var ifv = new C0Var("if_"+String.valueOf(numUniqueVars++));
+            
+            C0Var ifv = new C0Var("if_"+String.valueOf(numUniqueVars++));
+            vars.add(ifv);
+            arg = ifv;
             
             if(!elseOnly) {
                 vars.addAll(ifs.getVarList());
@@ -269,15 +304,18 @@ public class PassMethods {
             }
             
             //if neither ifOnly or elseOnly are true, add both to if statement
+            //for now this will be true to make testing easier
             if(!ifOnly && !elseOnly) {
                 stmts.add(new C0If(finalCmp, ifStmts, elseStmts));
             }
-            //
+            //if elseOnly and not ifOnly add else to the thing
+            
             
             return new C0Program(vars, stmts, arg);
             
         } else if(e instanceof R0Cmp) {
             C0Var cmpv = new C0Var("cmp_"+String.valueOf(numUniqueVars++));
+            vars.add(cmpv);
             opValue op = R0CmpOpToString(((R0Cmp) e).getOp());
             List<R0Expression> cs = e.getChildren();
             C0Program a = flattenRecursive(((R0Cmp) e).getA());
@@ -297,8 +335,9 @@ public class PassMethods {
             List<R0Expression> cs = e.getChildren();
             C0Program x = flattenRecursive(((R0Not) e).getX());
             vars.addAll(x.getVarList());
+            vars.add(notv);
             stmts.addAll(x.getStmtList());
-            stmts.add(new C0Assign(notv, x.getReturnArg()));
+            stmts.add(new C0Assign(notv, new C0Not(x.getReturnArg())));
             return new C0Program(vars, stmts, arg);
             
         }
