@@ -18,8 +18,8 @@ import static compilerPasses.PassMethods.*;
 
 import static C0.C0Interpreter.C0PrintProgram;
 import static R0.R0Interpreter.R0Interpret;
-import static X1.X1Interpreter.X1Interpret;
-import X1.X1Program;
+import static X86_1_1.X1Interpreter.X1Interpret;
+import X86_1_1.X1Program;
 import static tests.StaticTestList.testList;
 
 /**

@@ -3,17 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package X1;
+package X86_1_1;
 
 /**
  *
  * @author david
  */
-public class X1movq implements X1Instr{
+public class X1addq implements X1Instr{
     private X1Arg a;
     private X1Arg b;
 
-    public X1movq(X1Arg a, X1Arg b) {
+    public X1addq(X1Arg a, X1Arg b) {
         this.a = a;
         this.b = b;
     }

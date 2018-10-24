@@ -8,10 +8,10 @@ package tests;
 import R0.R0Program;
 import  static R0.ConciseConstructors.*;
 import static R0.R0Interpreter.R0Interpret;
-import X1.X1Program;
+import X86_1_1.X1Program;
 import static compilerPasses.PassMethods.*;
 import java.io.IOException;
-import static X1.X1Interpreter.X1PrintWithLiveAfters;
+import static X86_1_1.X1Interpreter.X1PrintWithLiveAfters;
 import static tests.testDirectComp.runPrintV1;
 
 /**

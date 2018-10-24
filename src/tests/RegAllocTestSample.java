@@ -6,9 +6,9 @@
 package tests;
 
 import R0.R0Program;
-import X0.X0Program;
-import X1.X1Program;
-import X1.X1Var;
+import X86_1_0.X0Program;
+import X86_1_1.X1Program;
+import X86_1_1.X1Var;
 import static compilerPasses.PassMethods.*;
 import java.io.IOException;
 import java.util.HashSet;

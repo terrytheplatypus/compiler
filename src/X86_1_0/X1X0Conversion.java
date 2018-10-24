@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package X0;
+package X86_1_0;
 
-import X1.X1Arg;
-import X1.X1Int;
-import X1.X1Reg;
+import X86_1_1.X1Arg;
+import X86_1_1.X1Int;
+import X86_1_1.X1Reg;
 
 /**
  *

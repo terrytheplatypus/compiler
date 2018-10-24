@@ -162,7 +162,11 @@ public class C1Interpreter {
                     /*
                     the way this approach works: add all the new statements to the
                     current spot in the statement list, then backtrack
-                    same thing in the else section
+                    same thing in the else section.
+                    This is not really better than recursion except that it might save some
+                    stack space, i just felt like it would be more ugly if i changed
+                    this function to return a pair of both the return value and the mapping,
+                    so i could evaluate if and else blocks
                     */
                     
                     for(C0Stmt curr:((C0If) s1).getIfStmts()) {

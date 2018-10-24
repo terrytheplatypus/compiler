@@ -3,26 +3,26 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package X1;
+package X86_1_0;
 
 /**
  *
  * @author david
  */
-public class X1addq implements X1Instr{
-    private X1Arg a;
-    private X1Arg b;
+public class X0movq implements X0Instr{
+    private X0Arg a;
+    private X0Arg b;
 
-    public X1addq(X1Arg a, X1Arg b) {
+    public X0movq(X0Arg a, X0Arg b) {
         this.a = a;
         this.b = b;
     }
 
-    public X1Arg getA() {
+    public X0Arg getA() {
         return a;
     }
 
-    public X1Arg getB() {
+    public X0Arg getB() {
         return b;
     }
 }

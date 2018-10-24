@@ -11,7 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import static compilerPasses.PassMethods.*;
 import R0.R0Program;
-import X0.X0Program;
+import X86_1_0.X0Program;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;

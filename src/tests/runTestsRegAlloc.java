@@ -7,11 +7,12 @@ package tests;
 
 import R0.R0Interpreter;
 import R0.R0Program;
-import X0.X0Program;
+import X86_1_0.X0Program;
 import static compilerPasses.PassMethods.compile1;
 import static compilerPasses.PassMethods.compileRegAlloc;
 import static compilerPasses.PassMethods.printX0;
 import java.io.IOException;
+import java.util.Scanner;
 import static tests.StaticTestList.testList;
 import static tests.testDirectComp.runPrintV1;
 import static tests.testDirectComp.runPrintV2;
@@ -32,6 +33,8 @@ public class runTestsRegAlloc {
             //System.out.println(printX0(compiled));
             runPrintV2(compiled);
             
+            Scanner s = new Scanner(System.in);
+            s.nextLine();
         }
     }
 }

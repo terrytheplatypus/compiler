@@ -3,20 +3,20 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package X0;
+package X86_1_1;
 
 /**
  *
  * @author david
  */
-public class X0callq implements X0Instr{
-    private String label;
+public class X1negq implements X1Instr{
+    private X1Arg x;
 
-    public X0callq(String label) {
-        this.label = label;
+    public X1negq(X1Arg x) {
+        this.x = x;
     }
 
-    public String getLabel() {
-        return label;
+    public X1Arg getX() {
+        return x;
     }
 }
