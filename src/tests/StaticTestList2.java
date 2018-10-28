@@ -69,7 +69,7 @@ public class StaticTestList2 {
         //START OF CONTROL FLOW TESTS
         //8, simple if test
         l.add(new R0Test( new R0Program(nIf(nCmp(nEq(), nInt(72), nAdd(nInt(15), nInt(55)))
-        ,nInt(77),nInt(44))),"if 15+55 < 72, return 77, else 44"));
+        ,nInt(77),nInt(44))),"if 15+55 == 72, return 77, else 44"));
         
         //9
         //next test: read two ints, x1, x2, see if first one is greater than 70,
@@ -79,12 +79,14 @@ public class StaticTestList2 {
                 nIf(nAnd(
                         nCmp(nGr(), nRead(), nInt(70)), nNot(nCmp(nGrEq(), nRead(), nInt(59)))),
                             nLitBool(true),
-                            nLitBool(false))),"if read is greater than 70 and less than 59,"
+                            nLitBool(false))),"if read1 is greater than 70 and "
+                                    + "read2 is less than 59,"
                                     + "return true, else false"));
         
         //next test: letting x equal a literal bool value (mess with it to see what happens if
         //you give bad type, if you're not implementing type checker
-        l.add( new R0Test(nProg(nLet(nVar("x"), 
+        l.add( new R0Test(
+                nProg(nLet(nVar("x"), 
                 nLitBool(true),
                 //nInt(6),
                 nAnd(nVar("x"), nLitBool(false)))),"false"));

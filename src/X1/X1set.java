@@ -13,8 +13,8 @@ import C0.C0Cmp.opValue;
  */
 public class X1set implements X1Instr {
     public static enum conditionCode{e,l,le,g,ge}
-    X1Arg a;
-    conditionCode cc;
+    private final X1Arg a;
+    private final conditionCode cc;
 
     public X1set(conditionCode cc, X1Arg a) {
         this.cc = cc;
@@ -35,6 +35,14 @@ public class X1set implements X1Instr {
         }
         System.err.println("error converting R0CmpOp to string");
         return null;
+    }
+
+    public X1Arg getA() {
+        return a;
+    }
+
+    public conditionCode getCc() {
+        return cc;
     }
     
 }

@@ -52,7 +52,10 @@ public class C1Interpreter {
             varValues.put(v.getName(), null);
         }
         //iterate thru all statements and update map accordingly
-        List <C0Stmt> progStmts = p.getStmtList();
+        
+        //you get the copy because the implementation modifies the given
+        //statement list, and you wouldn't want to do that with the actual statement list
+        List <C0Stmt> progStmts = p.getStmtListCopy();
         ListIterator <C0Stmt> iter = progStmts.listIterator();
         while(iter.hasNext()) {
             C0Stmt s1 = iter.next();

@@ -5,6 +5,7 @@
  */
 package X1;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,6 +44,10 @@ public class X1Program {
 
     public List<X1Instr> getInstrList() {
         return instrList;
+    }
+    
+    public List<X1Instr> getInstrListCopy() {
+        return new ArrayList(instrList);
     }
 
     public X1Arg getRetArg() {

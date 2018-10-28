@@ -5,6 +5,7 @@
  */
 package C0;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,6 +29,13 @@ public class C0Program {
 
     public List<C0Stmt> getStmtList() {
         return stmtList;
+    }
+    /**
+     * This is if you want a copy of the list
+     * @return 
+     */
+    public List<C0Stmt> getStmtListCopy() {
+        return new ArrayList(stmtList);
     }
 
     public List<C0Var> getVarList() {

@@ -50,6 +50,7 @@ import static C0.C0Cmp.*;
 import static C0.C0Cmp.opValue.EQ;
 import X1.X1ByteReg;
 import X1.X1If;
+import X1.X1TypedProgram;
 import X1.X1set;
 import X1.X1cmpq;
 import X1.X1movzbq;
@@ -129,6 +130,10 @@ public class PassMethods {
         } else if ( e instanceof R0Not) {
             List<R0Expression> cs = e.getChildren();
             return nNot(uniquifyRecursive(cs.get(0), varNameList));
+        } if(e instanceof R0And) {
+            List<R0Expression> cs = e.getChildren();
+            return new R0And(uniquifyRecursive(cs.get(0), varNameList),
+            uniquifyRecursive(cs.get(1), varNameList));
         }
         if(e instanceof R0LitBool) {
                 return e;
@@ -216,6 +221,10 @@ public class PassMethods {
         }
         
         //adding if/else stuff
+        
+        //here, AND is broken down into if statement
+        //this makes writing the rest of the compiler less error-prone
+        //because i have less cases to keep track of
         if(e instanceof R0And) {
             
             C0Var av = new C0Var("and_"+String.valueOf(numUniqueVars++));
@@ -227,8 +236,25 @@ public class PassMethods {
             
             stmts.addAll(fe1.getStmtList());
             stmts.addAll(fe2.getStmtList());
-            stmts.add(new C0Assign(av, 
-                    new C0And(fe1.getReturnArg(),fe2.getReturnArg())));
+//            stmts.add(new C0Assign(av, 
+//                    new C0And(fe1.getReturnArg(),fe2.getReturnArg())));
+            //now u have to make a comparison between the first arg and second
+            //if first is true, you return result of second, else you return false
+            
+           C0Cmp checkFirst = new C0Cmp(EQ, 
+                        fe1.getReturnArg() , 
+                        new C0LitBool(true));
+           
+           C0Stmt checkSecond = new C0Assign(av, fe2.getReturnArg());
+           C0Stmt quickFail = new C0Assign(av,new C0LitBool(false));
+           List <C0Stmt> cond2 = new ArrayList<>();
+           List <C0Stmt> shortCircuitFalse = new ArrayList<>();
+           cond2.add(checkSecond);
+           shortCircuitFalse.add(quickFail);
+           
+           C0If deSugaredAnd = new C0If(checkFirst,cond2, shortCircuitFalse);
+            stmts.add(deSugaredAnd);
+            
             return new C0Program(vars, stmts, arg);
             
         }
@@ -368,6 +394,10 @@ public class PassMethods {
         
     }
     
+    public static X1TypedProgram select(C1TypedProgram p) {
+        return new X1TypedProgram(select(p.getP()), p.getType());
+    }
+    
     // assumptions made by select and assign pass: rax is only register used in select pass
     //this version of select pass assumes that all C0 statements are assignments
     public static X1Program select(C0Program p) {
@@ -421,6 +451,12 @@ public class PassMethods {
                 } else if(e instanceof C0Not) {
                     instrs.add(new X1xorq(new X1Int(1), x));
                 }
+                //right now i changed flatten pass to get rid of C0And so i don't have
+                //to add another instruction
+                //this might be a little less compact than just adding an "and" operation
+                //but it makes it so i have to look at less cases.
+                //i could do the same with Not tbh, except it was already suggested to
+                //use xorq
                 
 
             } else if(s1 instanceof C0If) {
@@ -444,6 +480,10 @@ public class PassMethods {
                 C0Program elseBranch = new C0Program(elsesVarList, elses, new C0Int(-1));
                 X1Program flatIf = select(ifBranch);
                 X1Program flatElse = select(elseBranch);
+                //you have to remove the unused return from both branches
+                flatIf.getInstrList().remove(flatIf.getInstrList().size()-1);
+                flatElse.getInstrList().remove(flatElse.getInstrList().size()-1);
+                
                 ifsVarList.removeAll(vars);
                 elsesVarList.removeAll(vars);
                 vars.addAll(ifsVarList);
@@ -1158,9 +1198,7 @@ public class PassMethods {
         R0Program uniquified = uniquify(p);
         R2TypeCheckedProgram checked = R2TypeChecker.R2TypeCheck(uniquified);
         C0Program flat = flatten(new R0Program(checked.getExp()));
-        Class type = null;
-        if(checked.getClass().equals(R0Int.class)) type = int.class;
-        else if(checked.getClass().equals(R0Int.class)) type = boolean.class;
+        Class type = checked.getType();
         if(type == null)throw new Exception();
         C1TypedProgram r = new C1TypedProgram(flat, type);
         return r;
