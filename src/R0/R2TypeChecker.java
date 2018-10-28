@@ -31,11 +31,11 @@ public class R2TypeChecker {
         //int case
         if(e instanceof R0Int) {
             //System.out.println("Int");
-            return R0Int.class;
+            return int.class;
         }
         //literal bool case
         if (e instanceof R0LitBool) {
-            return R0LitBool.class;
+            return boolean.class;
         }
         //var case
         else if(e instanceof R0Var){
@@ -61,7 +61,7 @@ public class R2TypeChecker {
             List <R0Expression> l = ((R0Add) e).getChildren();
             Class a = ExpressionRecursiveTypeCheck(l.get(0), varList);
             Class b = ExpressionRecursiveTypeCheck(l.get(1), varList);
-            if(a == R0Int.class && b == R0Int.class ) return R0Int.class;
+            if(a == int.class && b == int.class ) return int.class;
             else {
                 throw new Exception("Invalid type");
             }
@@ -84,7 +84,7 @@ public class R2TypeChecker {
             //for now read only takes int
             //also, read in the type checker would be weird because
             //potentially the user could enter the wrong type
-            return R0Int.class;
+            return int.class;
         }  
         //this is for the comparison
         else if (e instanceof R0Cmp) {
@@ -96,13 +96,13 @@ public class R2TypeChecker {
             if(lhs != rhs) throw new Exception("LHS and RHS of Cmp are mismatched");
             //this next part should throw exception if there's type mismatch
             
-            return R0LitBool.class;
+            return boolean.class;
             
         }  else if (e instanceof R0Not) {
             
             Class type = ExpressionRecursiveTypeCheck(((R0Not) e).getX(), varList);
-            if(type != R0LitBool.class) throw new Exception("Non-boolean argument to \"not\"");
-            else return R0LitBool.class;
+            if(type != boolean.class) throw new Exception("Non-boolean argument to \"not\"");
+            else return boolean.class;
             } else if(e instanceof R0If) {
                 //condition should be bool, throw error otherwise
                 //because checking values is not done in this type checker,
@@ -111,7 +111,7 @@ public class R2TypeChecker {
                 //blocks have to have the same type, even though that isn't a requirement
                 //of the language
                 Class condType = ExpressionRecursiveTypeCheck(((R0If) e).getCond(), varList);
-                if(condType != R0LitBool.class) throw new  Exception("Condition of if stmt has unexpected type");
+                if(condType != boolean.class) throw new  Exception("Condition of if stmt has unexpected type");
                 
                     Class ifClass =  ExpressionRecursiveTypeCheck(((R0If) e).getRetIf(), varList);
                     
@@ -127,8 +127,8 @@ public class R2TypeChecker {
                 
                 Class b=  ExpressionRecursiveTypeCheck(((R0And) e).getB(), varList);
                 
-                if(a != b|| a != R0LitBool.class) throw new Exception (" \"And\" expression had non-bool type args ");
-                else return R0LitBool.class;
+                if(a != b|| a != boolean.class) throw new Exception (" \"And\" expression had non-bool type args ");
+                else return boolean.class;
             }
 //        if(e instanceof R0)
         System.out.println("error type checking R0 expression");

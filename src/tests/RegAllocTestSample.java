@@ -6,9 +6,9 @@
 package tests;
 
 import R0.R0Program;
-import X86_1_0.X0Program;
-import X86_1_1.X1Program;
-import X86_1_1.X1Var;
+import X0.X0Program;
+import X1.X1Program;
+import X1.X1Var;
 import static compilerPasses.PassMethods.*;
 import java.io.IOException;
 import java.util.HashSet;
@@ -32,7 +32,7 @@ public class RegAllocTestSample {
         
         R0Program t = testList.get(5);
         //first test that it doesn't crash partway through
-        X1Program p = selectV1(flatten(uniquify(t)));
+        X1Program p = select(flatten(uniquify(t)));
         X0Program x =  fix(assignModular(p, regAlloc(p)));
         System.out.print(printX0(x));
         runPrintV1(x);

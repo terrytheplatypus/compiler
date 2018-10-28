@@ -1,0 +1,23 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package X1;
+
+/**
+ *
+ * @author david
+ */
+public class X1retq implements X1Instr {
+    private X1Arg x;
+
+    public X1retq(X1Arg x) {
+        this.x = x;
+    }
+
+    public X1Arg getX() {
+        return x;
+    }
+    
+}

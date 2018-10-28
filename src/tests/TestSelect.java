@@ -18,8 +18,8 @@ import static compilerPasses.PassMethods.*;
 
 import static C0.C0Interpreter.C0PrintProgram;
 import static R0.R0Interpreter.R0Interpret;
-import static X86_1_1.X1Interpreter.X1Interpret;
-import X86_1_1.X1Program;
+import static X1.X1Interpreter.X1Interpret;
+import X1.X1Program;
 import static tests.StaticTestList.testList;
 
 /**
@@ -52,7 +52,7 @@ public class TestSelect {
             C0Program pp = flatten(p);
             C0PrintProgram(pp);
             System.out.println("value after flatten: " + C0Interpret(pp));
-            X1Program ppp = selectV1(pp);
+            X1Program ppp = select(pp);
             System.out.println("value after select: " + X1Interpret(ppp));
             
         }
