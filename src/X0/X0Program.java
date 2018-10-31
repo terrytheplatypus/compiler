@@ -7,6 +7,7 @@ package X0;
 
 import X1.X1Instr;
 import X1.X1Var;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,6 +25,8 @@ public class X0Program {
         return instrList;
     }
     
-    
+    public List<X0Instr> getInstrListCopy() {
+        return new ArrayList <X0Instr> (instrList);
+    }
     
 }

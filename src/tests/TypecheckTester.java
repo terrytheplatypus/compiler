@@ -7,7 +7,7 @@ package tests;
 
 import R0.R0Program;
 import R0.R2Interpreter;
-import R0.R2TypeCheckedProgram;
+import R0.R2TypedProgram;
 import R0.R2TypeChecker;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,7 +24,7 @@ public class TypecheckTester {
     for(R0Program r:testList) {
             System.out.println(n++);
         try {
-            R2TypeCheckedProgram p =  R2TypeChecker.R2TypeCheck(r);
+            R2TypedProgram p =  R2TypeChecker.R2TypeCheck(r);
             System.out.println("value: "+p.getType().getName());
         } catch (Exception ex) {
 //            Logger.getLogger(TypecheckTester.class.getName()).log(Level.SEVERE, null, ex);

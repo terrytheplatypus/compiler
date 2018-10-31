@@ -212,23 +212,27 @@ public class X1Interpreter {
                 X1Program ifBranch = new X1Program(new ArrayList <>(),
                                                 i2.getIfs(),
                                                 new X1Var("_"));
+                ifBranch.setLiveAfters(((X1If) i).getIfLivAfs());
                 
                 X1Program elseBranch = new X1Program(new ArrayList <>(),
                                                 i2.getElses(),
                                                 new X1Var("_"));
+                elseBranch.setLiveAfters(((X1If) i).getElseLivAfs());
+                
                 String ifString = X1PrintWithLiveAfters(ifBranch, depth+1);
                 String elseString = X1PrintWithLiveAfters(elseBranch, depth+1);
                 prog+= ifString + indent +"}\n";
-                prog += indent+"else {\n"+elseString+"}";
+                prog += indent+"else {\n"+elseString+indent+"}";
             }
             
             if(x.getLiveAfters()!= null) {
-                prog+="{";
+                prog+="[";
                 if(x.getLiveAfters().get(n-2) == null) { prog+="}\n";continue;}
                 for(X1Var o:x.getLiveAfters().get(n-2)) {
                     prog+= o.getName() + ", ";
                 } 
-            }
+                prog += "]";
+            } else prog += "no live-after set for this instr";
             prog += "\n";
             //m++;
         }
@@ -237,7 +241,7 @@ public class X1Interpreter {
         
     }
     
-    private static String StringifyCC(conditionCode cc) {
+    public static String StringifyCC(conditionCode cc) {
         switch (cc) {
                     case e:
                         return "=";

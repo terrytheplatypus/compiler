@@ -68,6 +68,11 @@ public class X1Program {
         return liveAfters;
     }
 
+    public void setLiveAfters(List<List<X1Var>> liveAfters) {
+        this.liveAfters = liveAfters;
+    }
+    
+
     public AdjacencyMap getAdjMap() {
         return adjMap;
     }

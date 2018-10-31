@@ -72,5 +72,14 @@ public class AdjacencyMap {
             System.out.print("\n");
         }
     }
+
+    /**
+     * this is if you want to use the map directly
+     * @return 
+     */
+    public Map<X1Arg, Set<X1Arg>> getActualMap() {
+        return adjMap;
+    }
+    
     
 }

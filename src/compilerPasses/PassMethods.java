@@ -5,19 +5,7 @@
  */
 package compilerPasses;
 
-import X0.X0addq;
-import X0.X0callq;
-import X0.X0subq;
-import X0.X0Instr;
-import X0.X0Program;
-import X0.X0Reg;
-import X0.X0retq;
-import X0.X0RegWithOffset;
-import X0.X0Arg;
-import X0.X0negq;
-import X0.X0Comment;
-import X0.X0movq;
-import X0.X0Int;
+import X0.*;
 import X1.X1negq;
 import X1.X1Instr;
 import X1.X1callq;
@@ -48,6 +36,13 @@ import java.util.Set;
 import javafx.util.Pair;
 import static C0.C0Cmp.*;
 import static C0.C0Cmp.opValue.EQ;
+import X0.X0ByteReg;
+import X0.X0If;
+import X0.X0cmpq;
+import X0.X0jmpif;
+import X0.X0label;
+import X0.X0set;
+import X0.X0xorq;
 import X1.X1ByteReg;
 import X1.X1If;
 import X1.X1TypedProgram;
@@ -74,6 +69,10 @@ public class PassMethods {
     public static String [] regNames = {"r8", "r9", "r10", "r11",
                                         "rcx", "rdx", /*"rdi",*/ "rsi"};
     
+    public static R2TypedProgram uniquify(R2TypedProgram p) {
+        
+        return new R2TypedProgram(uniquify(p.getProg()), p.getType());
+    }
     //all static variables need to be reset when compile is called on a new program,
     //and because uniquify is the first step, it should set numUniqueVars to 0
     public static R0Program uniquify(R0Program p) {
@@ -387,7 +386,7 @@ public class PassMethods {
         return null;
     }
     
-    C1TypedProgram flatten(R2TypeCheckedProgram p) {
+    public static C1TypedProgram flatten(R2TypedProgram p) {
         C0Program flat = flatten(new R0Program(p.getExp()));
         C1TypedProgram r = new C1TypedProgram(flat, p.getType());
         return r;
@@ -508,7 +507,13 @@ public class PassMethods {
         instrs.add( new X1retq(ret));
         return new X1Program(vars, instrs, ret);
     }
-    public static X1Program uncoverLive(X1Program p) {
+    public static X1TypedProgram uncoverLive(X1TypedProgram p) {
+        return new X1TypedProgram(uncoverLive(p.getProg()), p.getType());
+    }
+     public static X1Program uncoverLive(X1Program p) {
+         return uncoverLive(p, null);
+     }
+    public static X1Program uncoverLive(X1Program p, List <X1Var> initLivBefs) {
        List <X1Instr> instrs = p.getInstrList();
        //make list for both live after sets and live before sets
        List <List <X1Var>> livAfs = new ArrayList<>(Collections.nCopies(instrs.size(), new ArrayList <X1Var>() ));
@@ -575,11 +580,94 @@ public class PassMethods {
                     R_k.add((X1Var)x);
                 }
             }
+            //adding in stuff for control flow
+            else if (i instanceof X1cmpq) {
+                X1Arg a = ((X1cmpq) i).getA();
+                X1Arg b = ((X1cmpq) i).getB();
+                if(a instanceof X1Var) {
+                    R_k.add((X1Var) a);
+                }
+                if(b instanceof X1Var) {
+                    R_k.add((X1Var) b);
+                }
+            } else if (i instanceof X1movzbq) {
+                X1Arg a = ((X1movzbq) i).getA();
+                X1Arg b = ((X1movzbq) i).getB();
+                if(a instanceof X1Var) {
+                    R_k.add((X1Var) a);
+                }
+                if(b instanceof X1Var) {
+                    R_k.add((X1Var) b);
+                }
+            } else if (i instanceof X1xorq) {
+                X1Arg a = ((X1xorq) i).getA();
+                X1Arg b = ((X1xorq) i).getB();
+                if(a instanceof X1Var) {
+                    R_k.add((X1Var) a);
+                }
+                if(b instanceof X1Var) {
+                    R_k.add((X1Var) b);
+                }
+            } else if (i instanceof X1set) {
+                //unnecessary to add stuff here because you only
+                //use set with al
+            }
             
+            
+            //next set of if-else to computer live before and live after
             if( n == instrs.size()-1) {
+                if(initLivBefs == null) {
                 livBefs.set(n, R_k);
-                continue;
+                } else {
+                    List <X1Var> currLivBefs = new ArrayList<>();
+                    currLivBefs.addAll(initLivBefs);
+                    currLivBefs.addAll(R_k);
+                    livBefs.set(n, currLivBefs);
+                }
+               // continue;
+            }  else if (i instanceof X1If) {
+                X1Var cond = (X1Var) ((X1If) i).getCond();
+                livAfs.set(n, livBefs.get(n+1));
+                List <X1Var> lak = new ArrayList( livAfs.get(n));
+                
+                X1Program ifs = new X1Program(new ArrayList<>(),
+                        ((X1If) i).getIfs(),
+                        new X1Int(-1));
+                X1Program elses = new X1Program(new ArrayList<>(),
+                        ((X1If) i).getElses(),
+                        new X1Int(-1));
+                
+                
+                
+                //combine the live sets of the if child  and else child into one set
+                
+                X1Program ifsWithLiveAfters = uncoverLive(ifs);
+                X1Program elsesWithLiveAfters = uncoverLive(elses);
+                
+                
+                //this should change the liveness sets in the if instruction, but might not,
+                //so debug it
+                ((X1If) i).setIfLivAfs(ifsWithLiveAfters.getLiveAfters());
+                ((X1If) i).setElseLivAfs(elsesWithLiveAfters.getLiveAfters());
+                
+                
+                List <X1Var> allIfLives = new ArrayList <>();
+                for(List <X1Var> curr: ifsWithLiveAfters.getLiveAfters()) {
+                    allIfLives.addAll(curr);
+                }
+                for(List <X1Var> curr: elsesWithLiveAfters.getLiveAfters()) {
+                    allIfLives.addAll(curr);
+                }
+                //because of how "if" compilation is implemented, 
+                //you know that it's a variable compared against true
+                allIfLives.add(cond);
+                
+                allIfLives.addAll(lak);
+                livBefs.set(n, allIfLives);
+                
+                
             } else {
+                
                 livAfs.set(n, livBefs.get(n+1));
                 //live after k
                 List <X1Var> lak = new ArrayList( livAfs.get(n));
@@ -597,6 +685,11 @@ public class PassMethods {
         }
         return new X1Program(p.getVarList(), instrs, p.getRetArg(), livAfs);
     }
+    
+    public static X1TypedProgram buildInterference(X1TypedProgram p) {
+        return new X1TypedProgram(buildInterference(p.getProg()), p.getType());
+    }
+    
     public static X1Program buildInterference(X1Program p) {
         
         X1Program newProg;
@@ -666,6 +759,73 @@ public class PassMethods {
                     }
                 }
                 */
+            } else if (i instanceof X1xorq) {
+                X1Arg s = ((X1addq) i).getA();
+                X1Arg d = ((X1addq) i).getB();
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    if(!v.equals((X1Var) d)) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+            } else if (i instanceof X1movzbq) {
+                //s is assumed to be al or another direct bytereg reference,
+                //not a variable
+                //X1Arg s = ((X1movzbq) i).getA();
+                X1Arg d = ((X1movzbq) i).getB();
+                for( X1Var v:p.getLiveAfters().get(n)) {
+                    //next line is just to patch if it isn't var
+                    if(d instanceof X1Int) continue;
+                    //if(s instanceof X1Int) s = new X1Var("_");
+                    
+                    //first argument is always al for now so you don't need to check a
+                    if(!v.equals((X1Arg) d)) {
+                        map.addEdge(d, (X1Var)v );
+                    }
+                }
+            } else if(i instanceof X1cmpq) {
+                //the values of the arguments are not being changed with cmpq,
+                //so nothing needs to be done
+            } else if(i instanceof X1If) {
+                //recursively add to the adjacency map
+                X1Var cond = (X1Var) ((X1If) i).getCond();
+                
+                X1Program ifs = new X1Program(new ArrayList<>(),
+                        ((X1If) i).getIfs(),
+                        new X1Int(-1));
+                ifs.setLiveAfters(((X1If) i).getIfLivAfs());
+                X1Program elses = new X1Program(new ArrayList<>(),
+                        ((X1If) i).getElses(),
+                        new X1Int(-1));
+                elses.setLiveAfters(((X1If) i).getElseLivAfs());
+                
+                
+                
+                X1Program ifsWithInterference= buildInterference(ifs);
+                X1Program elsesWithInterference = buildInterference(elses);
+                
+                /*
+                for each variable in the maps of the returned programs,
+                add their mapped values into the corresponding places
+                
+                //also link the condition variable with all the liveafers
+                */
+                Map <X1Arg,Set <X1Arg>> ifsMap = ifsWithInterference.getAdjMap().getActualMap();
+                Map <X1Arg,Set <X1Arg>> elsesMap = elsesWithInterference.getAdjMap().getActualMap();
+                
+                //iterate over both maps
+                
+                for(Map.Entry<X1Arg,Set <X1Arg>> cur: ifsMap.entrySet()) {
+                    for(X1Arg cur2:cur.getValue()) {
+                        map.addEdge(cur.getKey(), cur2);
+                    }
+                }
+                
+                for(Map.Entry<X1Arg,Set <X1Arg>> cur: elsesMap.entrySet()) {
+                    for(X1Arg cur2:cur.getValue()) {
+                        map.addEdge(cur.getKey(), cur2);
+                    }
+                }
+                
             }
         }
         
@@ -673,7 +833,7 @@ public class PassMethods {
         //graph is built, it should throw null to the constructor for that
         
         //next part was for testing
-        //map.print();
+        map.print();
         return new X1Program(p.getVarList(), p.getInstrList(), p.getRetArg(), map);
         
     }
@@ -812,6 +972,10 @@ public class PassMethods {
         return false;
     }
     
+    public static Pair<Integer, Map<X1Arg, X0Arg>> regAlloc(X1TypedProgram p) {
+        return regAlloc(p.getProg());
+    }
+    
     //returns a map from X1Vars to X0Args
     //then i make a separate method that takes a map from X1 Vars to X0Args 
     //and uses that to generate the program
@@ -867,6 +1031,11 @@ public class PassMethods {
         return new Pair(stackSpaces*8, allocMap);
     }
     
+    public static X0TypedProgram assignModular (X1TypedProgram p ,
+            Pair<Integer, Map<X1Arg, X0Arg>> allocPair ) {
+        return new X0TypedProgram(assignModular(p.getProg(), allocPair), p.getType());
+    }
+    
     /**
      * The purpose of this is so i can make it interchangeable with other methods
      * of assigning registers/stack locations to variables
@@ -879,9 +1048,7 @@ public class PassMethods {
         
         int stackSpace = allocPair.getKey();
         Map<X1Arg, X0Arg> m = allocPair.getValue();
-        int numUsedRegs = 0;
         List <X1Instr> origInstrs = p.getInstrList();
-        List <X1Var> vars = p.getVarList();
         //don't need to make a map because u can just
         //truncate the string after the _ and then u got the number
         
@@ -958,12 +1125,105 @@ public class PassMethods {
                 newInstrs.add(new X0retq(X1ToX0MapConvert(((X1retq) cur).getX(), m)));
             } else if(cur instanceof X1negq) {
                 newInstrs.add(new X0negq(X1ToX0MapConvert(((X1negq) cur).getX(),m)));
-            } 
+            } else if(cur instanceof X1movzbq) {
+                
+                //you can assume the first arg is a X1ByteReg
+                X1ByteReg first = (X1ByteReg) ((X1movzbq) cur).getA();
+                newInstrs.add(new X0movzbq(new X0ByteReg(first.getName()), 
+                        X1ToX0MapConvert(((X1movzbq) cur).getB(), m)));
+                
+            } else if(cur instanceof X1set) {
+                //first arg is X1ByteReg
+                newInstrs.add(new X0set(((X1set) cur).getCc(), 
+                        X1ToX0MapConvert(((X1set) cur).getA(), m)));
+            } else if(cur instanceof X1xorq) {
+                newInstrs.add(new X0xorq(X1ToX0MapConvert(((X1xorq) cur).getA(), m), 
+                        X1ToX0MapConvert(((X1xorq) cur).getB(), m)));
+            } else if(cur instanceof X1cmpq) {
+                newInstrs.add(new X0cmpq(X1ToX0MapConvert(((X1cmpq) cur).getA(), m), 
+                        X1ToX0MapConvert(((X1cmpq) cur).getB(), m)));
+            } else if(cur instanceof X1If) {
+                //recursively do assignmodular on the if and else branches,
+                //add the statements you get from the recursive processing into the program
+                
+                //first assign the variable used in the comparison
+                X1Var cond = (X1Var) ((X1If) cur).getCond();
+                X0Arg condNew = X1ToX0MapConvert(cond, m);
+                
+                X1Program ifs = ((X1If) cur).generateIfProgram();
+                X1Program elses = ((X1If) cur).generateElsesProgram();
+                X0Program ifsAssigned = assignModular(ifs, allocPair);
+                X0Program elsesAssigned = assignModular(elses, allocPair);
+                
+                //for both of the recursively assigned programs, you have to remove the first
+                //instruction (because it will be stack allocation)
+                ifsAssigned.getInstrList().remove(0);
+                elsesAssigned.getInstrList().remove(0);
+                
+                //use the generated statement lists to generate an X0If
+                
+                X0If assignedIf = new X0If(condNew, 
+                        ifsAssigned.getInstrList(), 
+                        elsesAssigned.getInstrList());
+                
+                newInstrs.add(assignedIf);
+                
+            }
         }
         
         //then convert X1Instrs to X0Instrs
         return new X0Program(newInstrs);
         
+    }
+    
+    public static X0TypedProgram lowerConditionals (X0TypedProgram p) {
+        return new X0TypedProgram(lowerConditionals(p.getProg()), p.getType());
+    }
+    
+    public static X0Program lowerConditionals (X0Program p) {
+        List <X0Instr> instrs = p.getInstrList();
+        List <X0Instr> newInstrs  = new ArrayList<>();
+        for(X0Instr c:instrs) {
+            if(c instanceof X0If) {
+                //because i make all conditions in if statements
+                //into comparisons between variable and true,
+                //i change cond into cmpq
+                X0Arg x = ((X0If) c).getCond();
+                newInstrs.add(new X0cmpq(x, new X0Int(1)));
+                
+                X0label thenLabel = new X0label("thenLabel_" + numUniqueVars++);
+                X0label endLabel = new X0label("endLabel_" + numUniqueVars++);
+                X0Program ifs = ((X0If) c).generateIfProgram();
+                X0Program elses = ((X0If) c).generateElsesProgram();
+                
+                X0Program ifsLowered = lowerConditionals(ifs);
+                X0Program elsesLowered = lowerConditionals(elses);
+                
+                //first jmp to thenlabel if cc
+                newInstrs.add(new X0jmpif(conditionCode.e, thenLabel));
+                //put elses first, then it makes a jump to endlabel
+                
+                for(X0Instr i:elsesLowered.getInstrList()) {
+                    newInstrs.add(i);
+                }
+                newInstrs.add(new X0jmp(endLabel));
+                newInstrs.add(thenLabel);
+                for(X0Instr i:ifsLowered.getInstrList()) {
+                    newInstrs.add(i);
+                }
+                newInstrs.add(endLabel);
+                
+            } else newInstrs.add(c);
+        }
+        return new X0Program(newInstrs);
+    }
+    
+    public static X0TypedProgram compileControl(R0Program p) throws Exception {
+        R2TypedProgram p1 = R0.R2TypeChecker.R2TypeCheck(p);
+        X1TypedProgram p2 = select(flatten(uniquify(p1))); 
+        X0TypedProgram x = fix(lowerConditionals( assignModular(p2, regAlloc(p2)) ) );
+        //should have return type at the top of the program (print x0)
+        return x;
     }
     
     public static X0Program compileRegAlloc(R0Program p) {
@@ -1162,7 +1422,12 @@ public class PassMethods {
     public static X0Arg intRegConvert(X1Arg x) {
         if( x instanceof X1Int) return new X0Int(((X1Int) x).getVal());
         else if (x instanceof X1Reg) return new X0Reg(((X1Reg) x).getName());
+        else if(x instanceof  X1ByteReg) return new X0ByteReg(((X1ByteReg) x).getName());
         else{System.err.println("Error converting X1 Arg to X0 Arg"); return null;}
+    }
+    
+    public static X0TypedProgram fix (X0TypedProgram p) {
+        return new X0TypedProgram(fix(p.getProg()), p.getType());
     }
     
     public static X0Program fix(X0Program p) {
@@ -1189,14 +1454,24 @@ public class PassMethods {
                     continue;
                 }
                 else newInstrs.add(c);
-            } else newInstrs.add(c);
+            } else if(c instanceof X0cmpq) {
+                //if the 2nd argument is not literal value, just add the instr as is
+                //otherwise put the 2nd val into rax and then add new comparison
+                if(!(((X0cmpq) c).getB() instanceof X0Int)) {
+                    newInstrs.add(c);
+                } else {
+                    newInstrs.add(new X0movq(((X0cmpq) c).getB(), new X0Reg("rax")));
+                    newInstrs.add(new X0cmpq(((X0cmpq) c).getA(), new X0Reg("rax")));
+                }
+            }
+            else newInstrs.add(c);
         }
         return new X0Program(newInstrs);
     }
     
     public static C1TypedProgram uniquifyTypeCheckAndFlatten(R0Program p) throws Exception {
         R0Program uniquified = uniquify(p);
-        R2TypeCheckedProgram checked = R2TypeChecker.R2TypeCheck(uniquified);
+        R2TypedProgram checked = R2TypeChecker.R2TypeCheck(uniquified);
         C0Program flat = flatten(new R0Program(checked.getExp()));
         Class type = checked.getType();
         if(type == null)throw new Exception();
@@ -1252,6 +1527,10 @@ public class PassMethods {
                 X0movq i2 = (X0movq) i;
                 prog += "movq " + printX0Arg(i2.getA()) 
                         +"," + printX0Arg(i2.getB());
+            } else if(i instanceof X0movzbq) {
+                X0movzbq i2 = (X0movzbq) i;
+                prog += "movzbq " + printX0Arg(i2.getA()) 
+                        +"," + printX0Arg(i2.getB());
             } else if(i instanceof X0negq) {
                 X0negq i2 = (X0negq) i;
                 prog += "negq " + printX0Arg(i2.getX());
@@ -1267,7 +1546,31 @@ public class PassMethods {
                         +"," + printX0Arg(i2.getB());
             } else if(i instanceof X0Comment) {
                 prog +="#"+ ((X0Comment) i).getText();
-            }
+            } else if(i instanceof X0xorq) {
+                X0xorq i2 = (X0xorq) i;
+                prog += "xorq " + printX0Arg(i2.getA()) 
+                        +"," + printX0Arg(i2.getB());
+            } else if (i instanceof X0cmpq) {
+                X0cmpq i2 = (X0cmpq) i;
+                prog += "cmpq " + printX0Arg(i2.getA()) 
+                        +"," + printX0Arg(i2.getB());
+            } else if(i instanceof X0set) {
+                X0set i2 = (X0set) i;
+                prog += "set" + i2.getCc().name()
+                        +" " + printX0Arg(i2.getA());
+            } else if(i instanceof X0label) {
+                prog += ((X0label) i).getName()+":";
+            } else if(i instanceof X0movq) {
+                X0movq i2 = (X0movq) i;
+                prog += "movq " + printX0Arg(i2.getA()) 
+                        +"," + printX0Arg(i2.getB());
+            } else if(i instanceof X0jmp) {
+                X0jmp i2 = (X0jmp) i;
+                prog += "jmp " + i2.getL().getName();
+            } else if(i instanceof X0jmpif) {
+                X0jmpif i2 = (X0jmpif) i;
+                prog += "j"+i2.getCc().name()+" " + i2.getL().getName();
+            } else prog+= i.getClass();
             prog+="\n";
         }
         
@@ -1284,6 +1587,8 @@ public class PassMethods {
             
             return offset + "(%"+((X0RegWithOffset) z).getName()
                      +")";
+        } else if(z instanceof X0ByteReg) {
+            return "%" + ((X0ByteReg) z).getName();
         }
         return null;
     }

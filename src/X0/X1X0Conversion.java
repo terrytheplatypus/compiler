@@ -6,6 +6,7 @@
 package X0;
 
 import X1.X1Arg;
+import X1.X1ByteReg;
 import X1.X1Int;
 import X1.X1Reg;
 
@@ -18,6 +19,8 @@ public class X1X0Conversion {
     public static X0Arg intRegConvert(X1Arg x) {
         if( x instanceof X1Int) return new X0Int(((X1Int) x).getVal());
         else if (x instanceof X1Reg) return new X0Reg(((X1Reg) x).getName());
+        //also convert X1ByteReg to X0ByteReg
+        else if (x instanceof X1ByteReg) return new X0ByteReg(((X1Reg) x).getName());
         else{System.err.println("Error converting X1 Arg to X0 Arg"); return null;}
     }
 }

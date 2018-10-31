@@ -18,8 +18,8 @@ public class R2TypeChecker {
     
     //both the new R0Interpret and the ExpressionInterpret and the recursive
     //helper should return R0Literal (either boolean or int)
-    public static R2TypeCheckedProgram R2TypeCheck(R0Program p) throws Exception {
-        return new R2TypeCheckedProgram ( p.getExp(), ExpressionTypeCheck(p.getExp()));
+    public static R2TypedProgram R2TypeCheck(R0Program p) throws Exception {
+        return new R2TypedProgram ( p.getExp(), ExpressionTypeCheck(p.getExp()));
     }
     
     

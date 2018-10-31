@@ -9,10 +9,10 @@ package X0;
  *
  * @author tennisers
  */
-public class X0ByteReg implements X0Arg{
+public class X0label implements X0Instr{
     private String name;
 
-    public X0ByteReg(String name) {
+    public X0label(String name) {
         this.name = name;
     }
 

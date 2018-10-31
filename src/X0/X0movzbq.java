@@ -9,11 +9,11 @@ package X0;
  *
  * @author tennisers
  */
-public class X0xorq implements X0Instr{
+public class X0movzbq implements X0Instr {
     private X0Arg a;
     private X0Arg b;
 
-    public X0xorq(X0Arg a, X0Arg b) {
+    public X0movzbq(X0Arg a, X0Arg b) {
         this.a = a;
         this.b = b;
     }
@@ -25,7 +25,4 @@ public class X0xorq implements X0Instr{
     public X0Arg getB() {
         return b;
     }
-    
-    
-
 }

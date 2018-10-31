@@ -9,15 +9,16 @@ package X0;
  *
  * @author tennisers
  */
-public class X0ByteReg implements X0Arg{
-    private String name;
+public class X0jmp implements X0Instr{
+    private X0label l;
 
-    public X0ByteReg(String name) {
-        this.name = name;
+    public X0jmp(X0label l) {
+        this.l = l;
     }
 
-    public String getName() {
-        return name;
+    public X0label getL() {
+        return l;
     }
+    
     
 }
