@@ -41,8 +41,8 @@ public class TestR2RunPrint {
             
             //9 is the start of the conditional stuff
             //if(n < 8)continue;
-            //if(n < 9)continue;
-            if(n < 11)continue;
+            if(n < 9)continue;
+            //if(n < 11)continue;
             System.out.println("Expected value: "+t.getExpectedVal());
             
             String expected = R2Interpreter.R2Interpret(p).stringify();

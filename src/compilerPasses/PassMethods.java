@@ -448,7 +448,8 @@ public class PassMethods {
                     instrs.add(new X1movzbq(new X1ByteReg(), x));
                     
                 } else if(e instanceof C0Not) {
-                    instrs.add(new X1xorq(new X1Int(1), x));
+                    instrs.add(new X1xorq(new X1Int(1), C0ToX1Arg(((C0Not) e).getX())));
+                    instrs.add(new X1movq(C0ToX1Arg(((C0Not) e).getX()), x));
                 }
                 //right now i changed flatten pass to get rid of C0And so i don't have
                 //to add another instruction
@@ -760,8 +761,8 @@ public class PassMethods {
                 }
                 */
             } else if (i instanceof X1xorq) {
-                X1Arg s = ((X1addq) i).getA();
-                X1Arg d = ((X1addq) i).getB();
+                X1Arg s = ((X1xorq) i).getA();
+                X1Arg d = ((X1xorq) i).getB();
                 for( X1Var v:p.getLiveAfters().get(n)) {
                     if(!v.equals((X1Var) d)) {
                         map.addEdge(d, (X1Var)v );
@@ -1033,7 +1034,9 @@ public class PassMethods {
     
     public static X0TypedProgram assignModular (X1TypedProgram p ,
             Pair<Integer, Map<X1Arg, X0Arg>> allocPair ) {
-        return new X0TypedProgram(assignModular(p.getProg(), allocPair), p.getType());
+        return new X0TypedProgram(
+                assignModular(p.getProg(), allocPair, p.getType()),
+                p.getType());
     }
     
     /**
@@ -1044,7 +1047,13 @@ public class PassMethods {
      * @return 
      */
     public static X0Program assignModular (X1Program p ,
-            Pair<Integer, Map<X1Arg, X0Arg>> allocPair ) {
+            Pair<Integer, Map<X1Arg, X0Arg>> allocPair) {
+        return assignModular(p, allocPair, null);
+    }
+    
+    public static X0Program assignModular (X1Program p ,
+            Pair<Integer, Map<X1Arg, X0Arg>> allocPair ,
+            Class type) {
         
         int stackSpace = allocPair.getKey();
         Map<X1Arg, X0Arg> m = allocPair.getValue();
@@ -1110,10 +1119,21 @@ public class PassMethods {
                     newInstrs.add(new X0movq(X1ToX0MapConvert(rArg, m), new X0Reg("rax")));
                     
                 }
-                if(System.getProperty("os.name").startsWith("Windows"))
-                newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
-                else newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rdi")));
+                if(System.getProperty("os.name").startsWith("Windows")) {
+                    newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rcx")));
+                }
+                else {
+                    newInstrs.add(new X0movq(new X0Reg("rax"), new X0Reg("rdi")));
+                    //now it has to look at the type list and put the type index in rsi
+                    if(type == int.class) {
+                        
+                    } else if(type == boolean.class) {
+                        
+                    }
+                    //otherwise it looks through the list of types until it finds a match
+                }
                 //then call printint
+                
                 
                 newInstrs.add(new X0callq("printint"));
                 
@@ -1497,7 +1517,23 @@ public class PassMethods {
         return fix(assignWithRegs(select(flatten(uniquify(p)))));
     }
     
-    public static String printX0(X0Program p){
+    public static String printX0(X0TypedProgram p) {
+        return printX0(p.getProg(), p.getType());
+    }
+    
+    public static String printX0(X0Program p) {
+        return printX0(p, null);
+    }
+    /*
+    all that has to be changed in this function to make it use the types
+    is add the global variables for int and bool type and then add an extra
+    one to check for the return type of the program
+    when the garbage collection part is done, the types will be in a list
+    so it will iterate through the list to add the types
+    you have to know what the index of the return type is in the type list so
+    you can add it 
+    */
+    public static String printX0(X0Program p, Class c){
         
         String prog = "";
         //first going to try to compile for cygwin

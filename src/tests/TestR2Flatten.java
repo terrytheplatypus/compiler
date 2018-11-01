@@ -24,8 +24,8 @@ public class TestR2Flatten {
             System.out.println("*********Test number " + (n++ +1)+"*********");
             
             //9 is the start of the conditional stuff
-            //if(n < 8)continue;
-            if(n < 11)continue;
+            if(n < 9)continue;
+            //if(n < 11)continue;
             
             String expected = R2Interpreter.R2Interpret(r).stringify();
             System.out.println("Expected value: "+expected);
