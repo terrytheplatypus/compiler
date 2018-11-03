@@ -11,7 +11,7 @@ import java.util.List;
  *
  * @author david
  */
-public class R0Int implements R0Expression, R0Literal {
+public class R0Int implements R0Expression, R0Literal, R0Basic {
     private int val;
     public R0Int(int val) {
         this.val = val;

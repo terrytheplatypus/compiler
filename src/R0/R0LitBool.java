@@ -12,7 +12,7 @@ import java.util.List;
  *Literal boolean value. used in return.
  * @author tennisers
  */
-public class R0LitBool implements R0Bool,  R0Literal{
+public class R0LitBool implements R0Bool,  R0Literal, R0Basic{
 
 //    public static enum boolVals {TRUE, FALSE};
     

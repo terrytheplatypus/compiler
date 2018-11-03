@@ -8,7 +8,10 @@ package R0;
 /**
  *
  * @author tennisers
+ * persistent describes variables with vectors assigned to them, or the vectors themselves,
+ * which persist in memory
+ * it doesn't describe variables in general, as those go out of scope
  */
-public interface R0Literal extends R0Expression, R0Basic {
+public interface R0Persistent {
     
 }

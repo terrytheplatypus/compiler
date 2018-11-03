@@ -5,6 +5,9 @@
  */
 package R0;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  *
  * @author david
@@ -52,6 +55,35 @@ public class ConciseConstructors {
         return new R0Eq();
     } public static R0Program nProg(R0Expression e) {
         return new R0Program(e);
+    } public static R0Vector nVec(List <R0Expression> elmts) {
+        return new R0Vector (elmts);
+    } public static R0Vector nVec(R0Expression ... elmts) {
+        return new R0Vector (elmts);
+    } public static R0VecSet nVecSet(R0Expression vec, R0Int n, R0Expression newVal) {
+        return new R0VecSet(vec, n, newVal);
+    } public static R0VecRef nVecRef(R0Expression vec , R0Int n) {
+        return new R0VecRef(vec, n);
+    } public static R0Void nVoid() {return new R0Void();}
+    public static R0Test nTest(R0Program p, String expected) {
+        return new R0Test(p, expected);
     }
+    
+    //maybe make a "begin" structure and a switch statement
+    
+    //here is begin structure, is recursively generated
+    public static R0Expression nBegin(R0Expression ... exps) {
+        return nBegin(Arrays.asList(exps));
+    }
+    public static R0Expression nBegin(List <R0Expression> exps) {
+        if(exps.size() == 1) 
+            return exps.get(0);
+        else {
+            R0Expression curr = exps.get(0);
+            exps = exps.subList(1, exps.size());
+            
+            return nLet(nVar("_"), curr, nBegin(exps));
+        }
+    }
+    
     
 }

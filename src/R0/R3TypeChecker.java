@@ -14,7 +14,7 @@ import java.util.Scanner;
  *
  * @author tennisers
  */
-public class R2TypeChecker {
+public class R3TypeChecker {
     
     //both the new R0Interpret and the ExpressionInterpret and the recursive
     //helper should return R0Literal (either boolean or int)
@@ -23,10 +23,14 @@ public class R2TypeChecker {
     }
     
     
+    /*
+    
+    */
     public static Class R2ExpressionTypeCheck(R0Expression e) throws Exception{
         Map <String, Class> varList = new HashMap<>();
         return R2ExpressionRecursiveTypeCheck(e,varList);
     }
+    
     public static Class R2ExpressionRecursiveTypeCheck(R0Expression e, Map <String,Class> varList) throws Exception{
         //int case
         if(e instanceof R0Int) {
@@ -133,5 +137,10 @@ public class R2TypeChecker {
 //        if(e instanceof R0)
         System.out.println("error type checking R0 expression");
         return null;
+    }
+    
+    boolean R3TypeEquals(Object a, Object b) {
+        if(a.getClass() == int.class && b.getClass() == int.class) return true;
+        else if (a.getClass() == boolean.class )
     }
 }
