@@ -86,6 +86,9 @@ public class PassMethodsR3 {
     //this whole function would be a lot more compact in a functional language
     private static R0Expression uniquifyRecursive(R0Expression e, Map<String, String> varNameList) {
         
+            for(e.getChildren()) {
+                
+            }
             if(e instanceof R0Int) {
                 return e;
             }

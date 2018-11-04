@@ -5,11 +5,13 @@
  */
 package R0;
 
+import java.util.List;
+
 /**
  *
  * @author tennisers
  */
-public class R0TypedExpression {
+public class R0TypedExpression implements R0Expression{
     R0Expression e;
     Class type;
 
@@ -24,6 +26,11 @@ public class R0TypedExpression {
 
     public Class getType() {
         return type;
+    }
+
+    @Override
+    public List<R0Expression> getChildren() {
+    return e.getChildren();
     }
     
 }
