@@ -10,16 +10,16 @@ package R0;
  * @author tennisers
  */
 public class R3TypedProgram {
-    private R3TypedExpr e;
+    private R0Program p;
     private R3Type t;
 
-    public R3TypedProgram(R3TypedExpr e, R3Type t) {
-        this.e = e;
+    public R3TypedProgram(R0Program p, R3Type t) {
+        this.p = p;
         this.t = t;
     }
 
-    public R3TypedExpr getE() {
-        return e;
+    public R0Program getProg() {
+        return p;
     }
 
     public R3Type getType() {

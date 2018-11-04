@@ -5,12 +5,14 @@
  */
 package R0;
 
+import static R0.ConciseConstructors.nProg;
 import static R0.R3Type.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import javafx.util.Pair;
 
 /**
  *
@@ -19,26 +21,29 @@ import java.util.Scanner;
 public class R3TypeChecker {
     
     
-    
+    private static Pair <R0Expression, R3Type> nPair(R0Expression e, R3Type t) {
+        return new Pair <>(e, t);
+    }
     
     /*
-    
+    type check only needs to affix type to vectors, so that's what it does.
+    that minimizes changes that i need to make to everything else.
     */
     public static R3TypedProgram R3TypeCheck(R0Program p) throws Exception{
         Map <String, R3Type> varList = new HashMap<>();
-        R3TypedExpr result = R3RecursiveTypeCheck(p.getExp(),varList);
-        return new R3TypedProgram(result, result.getType());
+        Pair <R0Expression, R3Type>  result = R3RecursiveTypeCheck(p.getExp(),varList);
+        return new R3TypedProgram(nProg(result.getKey()), result.getValue());
     }
     
-    public static R3TypedExpr R3RecursiveTypeCheck(R0Expression e, Map <String,R3Type> varList) throws Exception{
+    public static Pair <R0Expression, R3Type> R3RecursiveTypeCheck(R0Expression e, Map <String,R3Type> varList) throws Exception{
         //int case
         if(e instanceof R0Int) {
             //System.out.println("Int");
-            return new R3TypedExpr(e, R3Int());
+            return nPair(e, R3Int());
         }
         //literal bool case
         if (e instanceof R0LitBool) {
-            return new R3TypedExpr(e, R3Bool());
+            return nPair(e, R3Bool());
         }
         //var case
         else if(e instanceof R0Var){
@@ -47,7 +52,7 @@ public class R3TypeChecker {
                 System.err.println("Error:variable used before declared");
             }
             R3Type varType = varList.get( ((R0Var) e).getName() );
-            return new R3TypedExpr(e, varType);
+            return nPair(e, varType);
         }
         //negate case
         else if(e instanceof R0Neg){
@@ -63,10 +68,10 @@ public class R3TypeChecker {
         else if(e instanceof R0Add) {
             //System.out.println("Add");
             List <R0Expression> l = ((R0Add) e).getChildren();
-            R3TypedExpr a = R3RecursiveTypeCheck(l.get(0), varList);
-            R3TypedExpr b = R3RecursiveTypeCheck(l.get(1), varList);
-            if(a.getType().isInt()  && b.getType().isInt() ) 
-                return new R3TypedExpr(e, R3Int());
+            Pair <R0Expression, R3Type> a = R3RecursiveTypeCheck(l.get(0), varList);
+            Pair <R0Expression, R3Type> b = R3RecursiveTypeCheck(l.get(1), varList);
+            if(a.getValue().isInt()  && b.getValue().isInt() ) 
+                return nPair(e, R3Int());
             else {
                 throw new Exception("Invalid type");
             }
@@ -78,10 +83,10 @@ public class R3TypeChecker {
             List <R0Expression> l = ((R0Let) e).getChildren();
             R0Var v = (R0Var) l.get(0);
             //System.out.println("assign to x");
-            R3TypedExpr xe = R3RecursiveTypeCheck(l.get(1), varList);
-            varList.put(v.getName(), xe.getType());
+            Pair <R0Expression, R3Type> xe = R3RecursiveTypeCheck(l.get(1), varList);
+            varList.put(v.getName(), xe.getValue());
             //System.out.println("body expression");
-            R3TypedExpr be = R3RecursiveTypeCheck(l.get(2), varList);
+            Pair <R0Expression, R3Type> be = R3RecursiveTypeCheck(l.get(2), varList);
             return be;
         }
         
@@ -89,25 +94,25 @@ public class R3TypeChecker {
             //for now read only takes int
             //also, read in the type checker would be weird because
             //potentially the user could enter the wrong type
-            return new R3TypedExpr(e, R3Int());
+            return nPair(e, R3Int());
         }  
         //this is for the comparison
         else if (e instanceof R0Cmp) {
             //get literal value of lhs, literal value of rhs, compare
-            R3TypedExpr lhs = R3RecursiveTypeCheck(((R0Cmp) e).getA(),varList);
-            R3TypedExpr rhs = R3RecursiveTypeCheck(((R0Cmp) e).getB(),varList);
+            Pair <R0Expression, R3Type> lhs = R3RecursiveTypeCheck(((R0Cmp) e).getA(),varList);
+            Pair <R0Expression, R3Type> rhs = R3RecursiveTypeCheck(((R0Cmp) e).getB(),varList);
             R0CmpOp op = ((R0Cmp) e).getOp();
             
-            if(!lhs.typeEquals(rhs)) throw new Exception("LHS and RHS of Cmp are mismatched");
+            if(!lhs.getValue().equals(rhs.getValue())) throw new Exception("LHS and RHS of Cmp are mismatched");
             //this next part should throw exception if there's type mismatch
             
-            return new R3TypedExpr(e, R3Bool());
+            return nPair(e, R3Bool());
             
         }  else if (e instanceof R0Not) {
             
-            R3TypedExpr x = R3RecursiveTypeCheck(((R0Not) e).getX(), varList);
-            if(!x.getType().isBool()) throw new Exception("Non-boolean argument to \"not\"");
-            else return new R3TypedExpr(e, R3Bool());
+            Pair <R0Expression, R3Type> x = R3RecursiveTypeCheck(((R0Not) e).getX(), varList);
+            if(!x.getValue().isBool()) throw new Exception("Non-boolean argument to \"not\"");
+            else return nPair(e, R3Bool());
             } else if(e instanceof R0If) {
                 //condition should be bool, throw error otherwise
                 //because checking values is not done in this type checker,
@@ -115,73 +120,76 @@ public class R3TypeChecker {
                 //thus, even though it isn't the case, it will assume that the if and else
                 //blocks have to have the same type, even though that isn't a requirement
                 //of the language
-                R3TypedExpr condType = R3RecursiveTypeCheck(((R0If) e).getCond(), varList);
-                if(!condType.getType().isBool() ) throw new  Exception("Condition of if stmt has unexpected type");
+                Pair <R0Expression, R3Type> condType = R3RecursiveTypeCheck(((R0If) e).getCond(), varList);
+                if(!condType.getValue().isBool() ) throw new  Exception("Condition of if stmt has unexpected type");
                 
-                    R3TypedExpr ifClass =  R3RecursiveTypeCheck(((R0If) e).getRetIf(), varList);
+                    Pair <R0Expression, R3Type> ifClass =  R3RecursiveTypeCheck(((R0If) e).getRetIf(), varList);
                     
                 
-                    R3TypedExpr elseClass = R3RecursiveTypeCheck(((R0If) e).getRetElse(), varList);
-                    if(ifClass != elseClass)  throw new  Exception("If and else blocks do not have same type");
+                    Pair <R0Expression, R3Type> elseClass = R3RecursiveTypeCheck(((R0If) e).getRetElse(), varList);
+                    if(!ifClass.getValue().equals(elseClass.getValue()) )
+                        throw new  Exception("If and else blocks do not have same type");
                     else return ifClass;
                 
         
                 
             } else if (e instanceof R0And) {
-                R3TypedExpr a=  R3RecursiveTypeCheck(((R0And) e).getA(), varList);
+                Pair <R0Expression, R3Type> a=  R3RecursiveTypeCheck(((R0And) e).getA(), varList);
                 
-                R3TypedExpr b=  R3RecursiveTypeCheck(((R0And) e).getB(), varList);
+                Pair <R0Expression, R3Type> b=  R3RecursiveTypeCheck(((R0And) e).getB(), varList);
                 
-                if(!a.typeEquals(b)|| !a.getType().isBool()) 
+                if(!a.getValue().equals(b.getValue())|| !a.getValue().isBool()) 
                     throw new Exception (" \"And\" expression had non-bool type args ");
-                else return new R3TypedExpr(e, R3Bool());
+                else return nPair(e, R3Bool());
             } else if(e instanceof R0Vector) {
                 //this has to 
-                //the next list is technically a list of R3TypedExprs but
-                //R3TypedExpr inherits from R0Expression, for the purposes of being used in
+                //the next list is technically a list of Pair <R0Expression, R3Type>s but
+                //Pair <R0Expression, R3Type> inherits from R0Expression, for the purposes of being used in
                 //vector
                 List <R0Expression> newVec = new ArrayList<>();
                 List <R3Type> elmtTypes = new ArrayList<>();
                 for(R0Expression curr:((R0Vector) e).getElmts()) {
-                    R3TypedExpr a = R3RecursiveTypeCheck(e, varList);
-                    elmtTypes.add(a.getType());
-                    newVec.add(a);
+                    Pair <R0Expression, R3Type> a = R3RecursiveTypeCheck(curr, varList);
+                    elmtTypes.add(a.getValue());
+                    //next part constructs a R3TypedExpr for each entry in the vector
+                    newVec.add(new R3TypedExpr(e, a.getValue()));
                 }
-                return new R3TypedExpr(new R0Vector(newVec), new R3Type(elmtTypes));
+                return nPair(new R0Vector(newVec), new R3Type(elmtTypes));
             } else if(e instanceof R0VecSet) {
                 //if the vector part has an unitialized (or non-vec) variable,
                 //throw and error
-                R3TypedExpr vec = R3RecursiveTypeCheck(((R0VecSet) e).getVec(), varList);
+                Pair <R0Expression, R3Type> vec = R3RecursiveTypeCheck(((R0VecSet) e).getVec(), varList);
                 int indexVal = ((R0VecSet) e).getIndex().getVal();
-                R3TypedExpr newVal = R3RecursiveTypeCheck(((R0VecSet) e).getNewVal(), varList);
-                if(!vec.getType().isVec()) throw new Exception("non-vector expression in "
+                Pair <R0Expression, R3Type> newVal = R3RecursiveTypeCheck(((R0VecSet) e).getNewVal(), varList);
+                if(!vec.getValue().isVec()) throw new Exception("non-vector expression in "
                         + "1st arg of vecset");
                 //if the int arg is outside the bounds throw an error
-                if(indexVal >vec.getChildren().size()) 
+                if(indexVal >=vec.getValue().getElmtTypes().size())
                     throw new Exception(" out-of-bounds index in vecset");
                 
                 //type of the whole thing is void
                 
-                R0VecSet newSet = new R0VecSet(vec, 
-                        ((R0VecSet) e).getIndex(), newVal);
+                R0VecSet newSet = new R0VecSet(vec.getKey(), 
+                        ((R0VecSet) e).getIndex(), newVal.getKey());
                 
-                return new R3TypedExpr(newSet, Void.class);
+                return nPair(newSet, R3Void());
                 
             }  else if(e instanceof R0VecRef) {
                 R0VecRef ref = (R0VecRef) e;
-                R3TypedExpr vec = R3RecursiveTypeCheck(ref.getVec(), varList);
+                Pair <R0Expression, R3Type> vec = R3RecursiveTypeCheck(ref.getVec(), varList);
                 int indVal = ref.getIndex().getVal();
                 //if vec is not a vector type or the index is out-of-bounds, throw error
                 
-                if(!vec.getType().isVec()) throw new Exception("non-vector expression in "
+                if(!vec.getValue().isVec()) throw new Exception("non-vector expression in "
                         + "1st arg of vecref");
                 
-                if(indVal >vec.getChildren().size()) 
+                if(indVal >=vec.getValue().getElmtTypes().size()) 
                     throw new Exception(" out-of-bounds index in vecset");
                 
                 //if both of those are fine, the return type is the type of the nth elemnt
                 
-                Class retType = vec.getType().getElmtTypes().get(indVal);
+                R3Type retType = vec.getValue().getElmtTypes().get(indVal);
+                return nPair(new R0VecRef(vec.getKey(), ref.getIndex()), retType);
             }
 //        if(e instanceof R0)
         System.out.println("error type checking R0 expression");

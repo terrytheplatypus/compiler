@@ -73,6 +73,12 @@ public class PassMethodsR3 {
         
         return new R2TypedProgram(uniquify(p.getProg()), p.getType());
     }
+    
+    public static R3TypedProgram uniquify(R3TypedProgram p) {
+        
+        return new R3TypedProgram(uniquify(p.getProg()), p.getType());
+    }
+    
     //all static variables need to be reset when compile is called on a new program,
     //and because uniquify is the first step, it should set numUniqueVars to 0
     public static R0Program uniquify(R0Program p) {
@@ -86,9 +92,7 @@ public class PassMethodsR3 {
     //this whole function would be a lot more compact in a functional language
     private static R0Expression uniquifyRecursive(R0Expression e, Map<String, String> varNameList) {
         
-            for(e.getChildren()) {
-                
-            }
+            
             if(e instanceof R0Int) {
                 return e;
             }
@@ -132,13 +136,33 @@ public class PassMethodsR3 {
         } else if ( e instanceof R0Not) {
             List<R0Expression> cs = e.getChildren();
             return nNot(uniquifyRecursive(cs.get(0), varNameList));
-        } if(e instanceof R0And) {
+        } else if(e instanceof R0And) {
             List<R0Expression> cs = e.getChildren();
             return new R0And(uniquifyRecursive(cs.get(0), varNameList),
             uniquifyRecursive(cs.get(1), varNameList));
         }
-        if(e instanceof R0LitBool) {
+        else if(e instanceof R0LitBool) {
                 return e;
+        }else if( e instanceof R0Vector) {
+            //iterate through its elmts and return uniquified version
+            R0Vector nVec;
+            List <R0Expression> newElmts = new ArrayList<>();
+            for(R0Expression curr:((R0Vector) e).getElmts()) {
+                //because this is run after type check you can assume all the
+                //elements have type affixed
+                R3TypedExpr curr2 = (R3TypedExpr) curr;
+                R3Type type = curr2.getType();
+                R0Expression currUniq = uniquifyRecursive(curr2.getE(), varNameList);
+                newElmts.add(currUniq);
+            }
+            return new R0Vector(newElmts);
+        } else if( e instanceof R0VecSet) {
+             R0Expression vec = uniquifyRecursive(((R0VecSet) e).getVec(), varNameList);
+             R0Expression newVal = uniquifyRecursive(((R0VecSet) e).getNewVal(), varNameList);
+             return new R0VecSet(vec, ((R0VecSet) e).getIndex(), newVal);
+        } else if( e instanceof R0VecRef) {
+             R0Expression vec = uniquifyRecursive(((R0VecSet) e).getVec(), varNameList);
+             return new R0VecRef(vec, ((R0VecSet) e).getIndex());
         }
         
         else{
@@ -1249,11 +1273,6 @@ public class PassMethodsR3 {
         return x;
     }
     
-    public static X0Program compileRegAlloc(R0Program p) {
-        X1Program p1 = select(flatten(uniquify(p)));
-        X0Program x =  fix(assignModular(p1, regAlloc(p1)));
-        return x;
-    }
     
     
     public static X0Arg X1toX0(X1Arg a) {
@@ -1358,15 +1377,6 @@ public class PassMethodsR3 {
         return new X0Program(newInstrs);
     }
     
-    public static C1TypedProgram uniquifyTypeCheckAndFlatten(R0Program p) throws Exception {
-        R0Program uniquified = uniquify(p);
-        R2TypedProgram checked = R2TypeChecker.R2TypeCheck(uniquified);
-        C0Program flat = flatten(new R0Program(checked.getExp()));
-        Class type = checked.getType();
-        if(type == null)throw new Exception();
-        C1TypedProgram r = new C1TypedProgram(flat, type);
-        return r;
-    }
     
     
     

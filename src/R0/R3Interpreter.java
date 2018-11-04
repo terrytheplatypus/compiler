@@ -187,8 +187,15 @@ public class R3Interpreter {
                 return new R0Void();
             } else if (e instanceof R0VecRef) {
                 //this returns int
+                R0Vector vec;
+                if(((R0VecRef) e).getVec() instanceof R0Var) {
                 R0Var var = (R0Var) ((R0VecRef) e).getVec();
-                R0Vector vec = (R0Vector) varList.get(var.getName());
+                vec = (R0Vector) varList.get(var.getName());
+                } else {
+                    //if it's not a variable it's a literal vector
+                    //if it's not a vector then it errors out
+                    vec = (R0Vector) ExpressionInterpret(((R0VecRef) e).getVec());
+                }
                 if(vec == null)System.err.println("sdfsd");
                 R0Expression ret= vec.getElmts().get(((R0VecRef) e).getIndex().getVal());
                R0Basic val =  ExpressionInterpretRecursive(ret, varList);

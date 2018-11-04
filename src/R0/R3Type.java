@@ -16,6 +16,7 @@ public class R3Type {
     private boolean isInt;
     private boolean isBool;
     private boolean isVector;
+    private boolean isVoid;
     
     private List <R3Type> elmtTypes;
 
@@ -31,6 +32,7 @@ public class R3Type {
     {
         if(c == int.class ||c ==R0Int.class) isInt = true;
         else if(c == boolean.class|| c== R0LitBool.class == true) isBool = true;
+        else if(c == Void.class||c == R0Void.class) isVoid = true;
     }    
     public static R3Type R3Int() {
         return new R3Type(new R0Int(0));
@@ -38,6 +40,10 @@ public class R3Type {
     
     public static R3Type R3Bool() {
         return new R3Type(new R0LitBool(true));
+    }
+    
+    public static R3Type R3Void() {
+        return new R3Type(Void.class);
     }
     
     public R3Type(List <R3Type> elmtTypes) {
@@ -93,6 +99,7 @@ public class R3Type {
                 }
             }
             ret +=">";
+            return ret;
         }
         return "error";
     }

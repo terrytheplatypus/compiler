@@ -7,6 +7,7 @@ package testsR3;
 
 import tests.*;
 import R0.R0Program;
+import R0.R0Test;
 import R0.R2Interpreter;
 import R0.R2TypedProgram;
 import R0.R2TypeChecker;
@@ -24,14 +25,16 @@ public class TypecheckTester {
     public static void main(String[] args) {
         
     int n = 0;
-    for(R0Program r:testList) {
+    for(R0Test t:testList) {
             System.out.println(n++);
         try {
-            R3TypedProgram p =  R3TypeChecker.R3TypeCheck(r);
+            //if(n < 11) continue;
+            System.out.println(t.getExpectedVal());
+            R3TypedProgram p =  R3TypeChecker.R3TypeCheck(t.getProg());
             System.out.println("value: "+p.getType().toString());
         } catch (Exception ex) {
 //            Logger.getLogger(TypecheckTester.class.getName()).log(Level.SEVERE, null, ex);
-//            ex.printStackTrace();
+            //ex.printStackTrace();
             System.out.println(ex.getMessage());
         }
             
