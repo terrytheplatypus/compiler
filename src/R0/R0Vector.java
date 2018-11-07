@@ -74,6 +74,9 @@ public class R0Vector implements R0Expression, R0Basic, R0Persistent {
         for (Iterator<R0Expression> it = e2.getElmts().iterator(); it.hasNext();) {
             R0Expression x = it.next();
             //assumes all elements are int bool void or vector
+            
+            if(x instanceof R3TypedExpr) x = ((R3TypedExpr) x).getE();
+            
             R0Basic x1 = (R0Basic) x;
                 if(x1 instanceof R0Literal) 
                     result += ((R0Literal) x1).stringify();

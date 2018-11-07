@@ -36,6 +36,7 @@ import java.util.Set;
 import javafx.util.Pair;
 import static C0.C0Cmp.*;
 import static C0.C0Cmp.opValue.EQ;
+import static R0.R3Type.*;
 import X0.X0ByteReg;
 import X0.X0If;
 import X0.X0cmpq;
@@ -69,106 +70,323 @@ public class PassMethodsR3 {
     public static String [] regNames = {"r8", "r9", "r10", "r11",
                                         "rcx", "rdx", /*"rdi",*/ "rsi"};
     
-    public static R2TypedProgram uniquify(R2TypedProgram p) {
-        
-        return new R2TypedProgram(uniquify(p.getProg()), p.getType());
-    }
     
-    public static R3TypedProgram uniquify(R3TypedProgram p) {
+    public static R3TypedProgram uniquify(R3TypedProgram p) throws Exception {
         
-        return new R3TypedProgram(uniquify(p.getProg()), p.getType());
-    }
-    
-    //all static variables need to be reset when compile is called on a new program,
-    //and because uniquify is the first step, it should set numUniqueVars to 0
-    public static R0Program uniquify(R0Program p) {
         numUniqueVars = 0;
-        return new R0Program(uniquifyRecursive(p.getExp(), new HashMap<>()));
+        //return new R3TypedProgram(uniquify(p.getExp()), p.getType());
+        
+        Map<String, String> varNameList =new HashMap<>();
+        
+        return new R3TypedProgram(uniquifyRecursive(p.getExp(), varNameList), p.getType());
     }
+    
+   
     
     //very bad space-wise, optimization would be to make a static array of maps,
     //and pass the index of the new map in the uniquifyRec call after doing something
     //w/ let expre
     //this whole function would be a lot more compact in a functional language
-    private static R0Expression uniquifyRecursive(R0Expression e, Map<String, String> varNameList) {
+    private static R3TypedExpr uniquifyRecursive(R3TypedExpr e, Map<String, String> varNameList) throws Exception {
         
-            
-            if(e instanceof R0Int) {
+            R0Expression e2 = e.getE();
+            if(e.getE() instanceof R0Int) {
                 return e;
             }
-            else if(e instanceof R0Var) {
-                String varName = varNameList.get( ((R0Var) e).getName() );
-                return nVar(varName);
+            else if(e.getE() instanceof R0Var) {
+                String varName = varNameList.get( ((R0Var) e.getE()).getName() );
+                return new R3TypedExpr(nVar(varName),e.getType());
             }
-            else if(e instanceof R0Read) {
+            else if(e.getE() instanceof R0Read) {
                 return e;
             }
         
-        else if(e instanceof R0Let) {
+        else if(e.getE() instanceof R0Let) {
             List <R0Expression> exps = e.getChildren();
-            R0Var x = (R0Var) exps.get(0);
+            
+            R0Var x;
+            if(exps.get(0) instanceof R0Var)
+                x = (R0Var) exps.get(0);
+            else {
+                if( exps.get(0) instanceof R3TypedExpr) {
+                    x = (R0Var) ( (R3TypedExpr) exps.get(0) ).getE();
+                } else {
+                    throw new Exception("first arg to let is not variable or r3typedexpr");
+                }
+                
+            }
+            
+            Map<String, String> varNameList2 = new HashMap<>(varNameList);
+            
             varNameList.put(x.getName(), x.getName()+"_"+String.valueOf(numUniqueVars++));
             String newVarName = varNameList.get(x.getName());
             R0Var newVar = nVar(newVarName);
-            return nLet(newVar, 
-                    uniquifyRecursive(exps.get(1), varNameList),
-                    uniquifyRecursive(exps.get(2), varNameList));
+            return new R3TypedExpr( nLet(newVar, 
+                    uniquifyRecursive( (R3TypedExpr) exps.get(1), varNameList),
+                    uniquifyRecursive( (R3TypedExpr) exps.get(2), varNameList)),e.getType());
         }
-        else if(e instanceof R0Neg) {
-            return nNeg(uniquifyRecursive(((R0Neg) e).getChild(),varNameList));
+        else if(e.getE() instanceof R0Neg) {
+            //this compiler does a lot of cavalier type checking because of assumed structure
+            R0Expression e1 = e.getE();
+            R3TypedExpr child =  (R3TypedExpr) ((R0Neg) e1).getChild();
+            
+            return new R3TypedExpr(nNeg(uniquifyRecursive(child,varNameList)),e.getType());
         }
-        else if(e instanceof R0Add) {
+        else if(e.getE() instanceof R0Add) {
             List<R0Expression> cs = e.getChildren();
-            return nAdd(uniquifyRecursive(cs.get(0),varNameList),
-                    uniquifyRecursive(cs.get(1),varNameList));
+            return new R3TypedExpr( nAdd(uniquifyRecursive((R3TypedExpr)cs.get(0),varNameList),
+                    uniquifyRecursive((R3TypedExpr) cs.get(1),varNameList)), R3Type.R3Int() );
         }
         //adding if/else stuff
-        else if(e instanceof R0If) {
+        else if(e2 instanceof R0If) {
             List<R0Expression> cs = e.getChildren();
-            return nIf(uniquifyRecursive(cs.get(0), varNameList),
-                    uniquifyRecursive(cs.get(1), varNameList),
-                    uniquifyRecursive(cs.get(2), varNameList));
-        } else if(e instanceof R0Cmp) {
+            return new R3TypedExpr(
+                    nIf(uniquifyRecursive((R3TypedExpr)cs.get(0), varNameList),
+                    uniquifyRecursive((R3TypedExpr)cs.get(1), varNameList),
+                    uniquifyRecursive((R3TypedExpr)cs.get(2), varNameList)) ,e.getType());
+        } else if(e2 instanceof R0Cmp) {
             List<R0Expression> cs = e.getChildren();
-            return nCmp(((R0Cmp) e).getOp(), 
-                    uniquifyRecursive(cs.get(0), varNameList), 
-                    uniquifyRecursive(cs.get(1), varNameList));
-        } else if ( e instanceof R0Not) {
+            return new R3TypedExpr( nCmp(((R0Cmp) e2).getOp(), 
+                    uniquifyRecursive( (R3TypedExpr) cs.get(0), varNameList), 
+                    uniquifyRecursive( (R3TypedExpr) cs.get(1), varNameList)),
+                    e.getType());
+        } else if ( e2 instanceof R0Not) {
             List<R0Expression> cs = e.getChildren();
-            return nNot(uniquifyRecursive(cs.get(0), varNameList));
-        } else if(e instanceof R0And) {
+            return new R3TypedExpr(
+                    nNot(uniquifyRecursive((R3TypedExpr)cs.get(0), varNameList)),
+                    e.getType());
+        } else if(e2 instanceof R0And) {
             List<R0Expression> cs = e.getChildren();
-            return new R0And(uniquifyRecursive(cs.get(0), varNameList),
-            uniquifyRecursive(cs.get(1), varNameList));
+            return new R3TypedExpr(
+                    nAnd(uniquifyRecursive((R3TypedExpr)cs.get(0), varNameList),
+            uniquifyRecursive((R3TypedExpr)cs.get(1), varNameList)),
+            e.getType());
         }
-        else if(e instanceof R0LitBool) {
+        else if(e2 instanceof R0LitBool) {
                 return e;
-        }else if( e instanceof R0Vector) {
+        }else if( e2 instanceof R0Vector) {
             //iterate through its elmts and return uniquified version
             R0Vector nVec;
             List <R0Expression> newElmts = new ArrayList<>();
-            for(R0Expression curr:((R0Vector) e).getElmts()) {
+            for(R0Expression curr:((R0Vector) e2).getElmts()) {
                 //because this is run after type check you can assume all the
                 //elements have type affixed
                 R3TypedExpr curr2 = (R3TypedExpr) curr;
                 R3Type type = curr2.getType();
-                R0Expression currUniq = uniquifyRecursive(curr2.getE(), varNameList);
+                R0Expression currUniq = uniquifyRecursive(curr2, varNameList);
                 newElmts.add(currUniq);
             }
-            return new R0Vector(newElmts);
-        } else if( e instanceof R0VecSet) {
-             R0Expression vec = uniquifyRecursive(((R0VecSet) e).getVec(), varNameList);
-             R0Expression newVal = uniquifyRecursive(((R0VecSet) e).getNewVal(), varNameList);
-             return new R0VecSet(vec, ((R0VecSet) e).getIndex(), newVal);
-        } else if( e instanceof R0VecRef) {
-             R0Expression vec = uniquifyRecursive(((R0VecSet) e).getVec(), varNameList);
-             return new R0VecRef(vec, ((R0VecSet) e).getIndex());
+            return new R3TypedExpr (new R0Vector(newElmts),e.getType());
+        } else if( e2 instanceof R0VecSet) {
+             R0Expression vec = 
+                     uniquifyRecursive((R3TypedExpr) ((R0VecSet) e2).getVec(), varNameList);
+             R0Expression newVal = 
+                     uniquifyRecursive((R3TypedExpr)((R0VecSet) e2).getNewVal(), varNameList);
+             return new R3TypedExpr(
+                     new R0VecSet(vec, ((R0VecSet) e2).getIndex(), newVal),
+                    e.getType());
+        } else if( e2 instanceof R0VecRef) {
+             R0Expression vec = 
+                     uniquifyRecursive((R3TypedExpr)((R0VecRef) e2).getVec(), varNameList);
+             return new R3TypedExpr(
+                     new R0VecRef(vec, ((R0VecRef) e2).getIndex()),
+                    e.getType());
         }
         
         else{
+                System.err.println("Error uniquifying expr of type" + e.getE().getClass());
             return null; 
         }
     }
+    
+    public static R3TypedProgram exposeAllocation(R3TypedProgram p) throws Exception {
+        return new R3TypedProgram(exposeAllocRecursive(p.getExp()), p.getType());
+    }
+    
+    public static R3TypedExpr exposeAllocRecursive(R3TypedExpr e) throws Exception {
+        
+            R0Expression e2 = e.getE();
+            if(e2 instanceof R0Int) {
+                return e;
+            }
+            else if(e2 instanceof R0Var) {
+                return e;
+            }
+            else if(e2 instanceof R0Read) {
+                return e;
+            }
+        
+        else if(e2 instanceof R0Let) {
+            List <R0Expression> exps = e.getChildren();
+            return new R3TypedExpr( nLet((R0Var)exps.get(0), 
+                    exposeAllocRecursive( (R3TypedExpr) exps.get(1)),
+                    exposeAllocRecursive( (R3TypedExpr) exps.get(2))),e.getType());
+        }
+        else if(e.getE() instanceof R0Neg) {
+            //this compiler does a lot of cavalier type checking because of assumed structure
+            R0Expression e1 = e.getE();
+            R3TypedExpr child =  (R3TypedExpr) ((R0Neg) e1).getChild();
+            
+            return new R3TypedExpr(nNeg(exposeAllocRecursive(child)),e.getType());
+        }
+        else if(e.getE() instanceof R0Add) {
+            List<R0Expression> cs = e.getChildren();
+            return new R3TypedExpr( nAdd(exposeAllocRecursive((R3TypedExpr)cs.get(0)),
+                    exposeAllocRecursive((R3TypedExpr) cs.get(1))), R3Type.R3Int() );
+        }
+        //adding if/else stuff
+        else if(e2 instanceof R0If) {
+            List<R0Expression> cs = e.getChildren();
+            return new R3TypedExpr(
+                    nIf(exposeAllocRecursive((R3TypedExpr)cs.get(0)),
+                    exposeAllocRecursive((R3TypedExpr)cs.get(1)),
+                    exposeAllocRecursive((R3TypedExpr)cs.get(2))) ,e.getType());
+        } else if(e2 instanceof R0Cmp) {
+            List<R0Expression> cs = e.getChildren();
+            return new R3TypedExpr( nCmp(((R0Cmp) e2).getOp(), 
+                    exposeAllocRecursive( (R3TypedExpr) cs.get(0)), 
+                    exposeAllocRecursive( (R3TypedExpr) cs.get(1))),
+                    e.getType());
+        } else if ( e2 instanceof R0Not) {
+            List<R0Expression> cs = e.getChildren();
+            return new R3TypedExpr(
+                    nNot(exposeAllocRecursive((R3TypedExpr)cs.get(0))),
+                    e.getType());
+        } else if(e2 instanceof R0And) {
+            List<R0Expression> cs = e.getChildren();
+            return new R3TypedExpr(
+                    nAnd(exposeAllocRecursive((R3TypedExpr)cs.get(0)),
+            exposeAllocRecursive((R3TypedExpr)cs.get(1))),
+            e.getType());
+        }
+        else if(e2 instanceof R0LitBool) {
+                return e;
+        }else if( e2 instanceof R0Vector) {
+            
+            /*
+            the allocate thing is an enormous nested let which in the end does the
+            allocation.
+            because let is recursive and it has to know both the structure of the
+            original vector and the list of generated variables for the vector fields,
+            another recursive helper function has to be made to deal with that
+            */
+           
+            //return exposeVector(e, e2, true);
+            return null;
+            
+        } else if( e2 instanceof R0VecSet) {
+             R0Expression vec = 
+                     exposeAllocRecursive((R3TypedExpr) ((R0VecSet) e2).getVec());
+             R0Expression newVal = 
+                     exposeAllocRecursive((R3TypedExpr)((R0VecSet) e2).getNewVal());
+             return new R3TypedExpr(
+                     new R0VecSet(vec, ((R0VecSet) e2).getIndex(), newVal),
+                    e.getType());
+        } else if( e2 instanceof R0VecRef) {
+             R0Expression vec = 
+                     exposeAllocRecursive((R3TypedExpr)((R0VecRef) e2).getVec());
+             return new R3TypedExpr(
+                     new R0VecRef(vec, ((R0VecRef) e2).getIndex()),
+                    e.getType());
+        }
+        
+        else{
+            throw new Exception("unable to match type " +e2.getClass());
+            //return null; 
+        }
+        
+    }
+    
+    /**
+     * is first called with param that indicates that it is
+     * using the whole vector, subsequent calls are false for that param
+     * @param originalVec the original vector
+     * @param tempVec the temporary vector where you keep chopping off the beginning
+     * @param wholeVector this is true in the first iteration and false in all subsequent
+     * @param entryVars this is a list of all the variables that are assigned to as entries
+     * in the array
+     * @param entryExprs
+     * @return 
+     */
+    public static R3TypedExpr assignVecElmts(R3TypedExpr originalVec,
+            R0Vector tempVec, boolean wholeVector, List <R3TypedExpr> entryVars,
+            List <R3TypedExpr> entryExprs) throws Exception {
+        
+        R0Vector actualVec = (R0Vector) originalVec.getE();
+        List <R0Expression> newExprs =   new ArrayList<>(actualVec.getElmts());
+        if (newExprs.isEmpty()) {
+            
+            R3TypedExpr finalVec = new R3TypedExpr(new R0Var("finalVec"), originalVec.getType());
+            
+            //make conditional collect
+            
+            int len = originalVec.sizeIfVec();
+            int bytes = 8*originalVec.sizeIfVec() + 8;
+            R0Add spaceUsedAfter = nAdd(new R3GlobalValue("free_ptr"),nInt(bytes));
+            R0If condCollect = new R0If(new R3TypedExpr(nCmp(nLess(),  
+                                        spaceUsedAfter,
+                                        new R3GlobalValue("fromspace__end")), R3Bool())
+                                    ,new R3TypedExpr(nVoid(), R3Void()),
+                                    new R3TypedExpr(new R3Collect(nInt(bytes)), R3Void()));
+            
+            
+            
+            //make typed wrapper for the conditional collect
+            R3TypedExpr collectWrapper = new R3TypedExpr(condCollect, R3Void());
+            
+            //make allocate
+            //it doesn't matter what the let returns if it's folded into the final "begin" sequence
+            //thus, it can use an arbitrary expression
+            R0Let allocate = 
+                    new R0Let(finalVec, new R3Allocate(new R0Int(len), 
+                            originalVec.getType()),
+                            nVoid());
+            
+            //make list of vecsets as a begin
+            List <R3TypedExpr> vecSets= new ArrayList <>();
+            
+            int index = -1;
+            for(R3TypedExpr curr:entryVars) {
+                index++;
+                vecSets.add(new R3TypedExpr(
+                        nVecSet(entryVars.get(index), nInt(index), entryExprs.get(index))
+                        , R3Void()));
+            }
+            
+            //make list to pass in as a argument to begin constructor
+            //last argument has to be finalvec because that's what you want to return
+            //to the assignment
+            
+            List <R3TypedExpr> beginList = new ArrayList<>();
+            beginList.add(collectWrapper);
+            beginList.add(new R3TypedExpr(allocate, R3Void()));
+            beginList.addAll(vecSets);
+            beginList .add(finalVec);
+            return new R3TypedExpr(nBeginR3(beginList), originalVec.getType());
+                    
+                    //return the condcollect and the vecsets and a final assignment
+                    //to the temp vector variable as a begin
+        }
+        //for the adding expressions with variables i could've used a map but i got sick of maps
+        //and it's not more useful in this case, 
+        //just makes the function call slightly more verbose to have 2 lists
+        R3TypedExpr currElmt =(R3TypedExpr) newExprs.get(0);
+        R3TypedExpr exposedCurr = exposeAllocRecursive(currElmt);
+        String currVarName = "_vecInit_" +numUniqueVars;
+        entryVars.add(new R3TypedExpr(nVar(currVarName), exposedCurr.getType()));
+        entryExprs.add(exposedCurr);
+        newExprs.remove(0);
+        R0Vector newVec = new R0Vector(newExprs);
+        //recursive call to exposeVector
+        //let xn en
+        //this is void because it's just a bunch of vector sets
+        return new R3TypedExpr(nLet(nVar(currVarName), 
+                exposedCurr,
+                currElmt),R3Type.R3Void());
+        //return null;
+    }
+    
+    
     
     /**
      * IIMPORTANT: C0Program is assumed to have no duplicate variable names
@@ -1265,13 +1483,6 @@ public class PassMethodsR3 {
         return new X0Program(newInstrs);
     }
     
-    public static X0TypedProgram compileControl(R0Program p) throws Exception {
-        R2TypedProgram p1 = R0.R2TypeChecker.R2TypeCheck(p);
-        X1TypedProgram p2 = select(flatten(uniquify(p1))); 
-        X0TypedProgram x = fix(lowerConditionals( assignModular(p2, regAlloc(p2)) ) );
-        //should have return type at the top of the program (print x0)
-        return x;
-    }
     
     
     

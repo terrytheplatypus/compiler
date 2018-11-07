@@ -23,6 +23,10 @@ public class R3TypedExpr implements R0Expression{
     public R3Type getType() {
         return t;
     }
+    
+    public int sizeIfVec() {
+        return t.getElmtTypes().size();
+    }
 
     public R3TypedExpr(R0Expression e, R3Type t) {
         this.e = e;
@@ -32,6 +36,7 @@ public class R3TypedExpr implements R0Expression{
         this.e = e;
         if(c == int.class) t = R3Int();
         if(c == boolean.class) t = R3Type.R3Bool();
+        if(c == Void.class) t = R3Type.R3Void();
     }
     
     public boolean typeEquals(R3TypedExpr b) {
@@ -42,4 +47,17 @@ public class R3TypedExpr implements R0Expression{
     public List<R0Expression> getChildren() {
         return e.getChildren();
     }
+    
+    public boolean isInt() {
+        return t.isInt();
+    }
+    
+    public boolean isBool() {
+        return t.isBool();
+    }
+    
+    public boolean isVec() {
+        return t.isVec();
+    }
+    
 }

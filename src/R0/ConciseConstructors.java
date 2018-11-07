@@ -26,7 +26,7 @@ public class ConciseConstructors {
     public static R0Neg nNeg(R0Expression a) {
         return new R0Neg(a);
     }
-    public static R0Let nLet(R0Var x,R0Expression xe, R0Expression be) {
+    public static R0Let nLet(R0Expression x,R0Expression xe, R0Expression be) {
         return new R0Let(x,xe,be);
     }
     public static R0Read nRead(){
@@ -82,6 +82,19 @@ public class ConciseConstructors {
             exps = exps.subList(1, exps.size());
             
             return nLet(nVar("_"), curr, nBegin(exps));
+        }
+    }
+    public static R0Expression nBeginR3(R3TypedExpr ... exps) {
+        return nBegin(Arrays.asList(exps));
+    }
+    public static R0Expression nBeginR3(List <R3TypedExpr> exps) {
+        if(exps.size() == 1) 
+            return exps.get(0);
+        else {
+            R0Expression curr = exps.get(0);
+            exps = exps.subList(1, exps.size());
+            
+            return nLet(nVar("_"), curr, nBeginR3(exps));
         }
     }
     

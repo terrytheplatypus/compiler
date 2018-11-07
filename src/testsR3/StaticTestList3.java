@@ -121,7 +121,12 @@ public class StaticTestList3 {
         vectors add a lot more complexity to the possibility space of programs
         so it would maybe be better for me to make a lot of small tests
         */
-        //12 simple test (get the corresponding vector entry for the number you type in
+        
+        //12 basic test: define and return a vector
+        
+        l.add(nTest(nProg(nVec(nInt(1),nInt(2),nInt(3))), "define and return<1,2,3>"));
+        
+        //13 simple test (get the corresponding vector entry for the number you type in
         l.add(new R0Test(nProg(nLet(nVar("dinko"),
                 nVec(nInt(70), nInt(43), nInt(-9999)),
                 nLet(nVar("check"),
@@ -135,7 +140,7 @@ public class StaticTestList3 {
                         + "if you type in 2, you get 43,"
                                         + "otherwise it returns dinko[2] (-9999)"));
         
-        //13
+        //14
         //testing that vectors are still visible when they "go out of scope"
         l.add(nTest(nProg(nLet(nVar("bob"), 
                 nLet(nVar("testVec"), 
@@ -143,7 +148,7 @@ public class StaticTestList3 {
                         nInt(5)),
                 nVecRef(nVar("testVec"), nInt(2)))), "expected is 23"));
         
-        //14 basic vecset and begin test
+        //15 basic vecset and begin test
         //vector has values 1,2, and 3, change vec[2] to 78 with vecset
         //return the vector
         l.add(nTest(nProg(nLet(nVar("vec"),
@@ -158,7 +163,7 @@ public class StaticTestList3 {
                 + "return the vector"));
         //now to test setting and vecrefing nested vectors
         /*
-        15::
+        16::
         make a vector <4, true,<29, 53>> and return [2[1]]
         
         */
@@ -173,7 +178,7 @@ public class StaticTestList3 {
                                     nVecRef(nVar("z"), nInt(1)))),
                 "make a vector <4, true,<29, 53>> and return [2[1]] (53 is expected)"  ));
         
-        //16: check that vectors aren't copied from assignment from one var to another
+        //17: check that vectors aren't copied from assignment from one var to another
         l.add(nTest(
                 nProg(nBegin(
                     nLet(
@@ -185,6 +190,11 @@ public class StaticTestList3 {
                         nVar("dav")
                 )
         ), "should print <8,997, 6>" ));
+        //18, the test program from the book
+        l.add(nTest(nProg(nVecRef(
+                nVecRef(
+                        nVec(nVec(nInt(42))), nInt(0)), nInt(0))),
+                "does gets [0][0] of <<42>,0>, so expected is 42"));
         return l;
     }
 }

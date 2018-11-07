@@ -19,7 +19,7 @@ public class R0Let implements R0Expression{
     R0Expression xe;
     R0Expression be;
 
-    public R0Let(R0Var x, R0Expression xe, R0Expression be) {
+    public R0Let(R0Expression x, R0Expression xe, R0Expression be) {
         this.x = x;
         this.xe = xe;
         this.be = be;
