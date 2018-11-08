@@ -271,8 +271,8 @@ public class PassMethodsR3 {
             another recursive helper function has to be made to deal with that
             */
            
-            //return exposeVector(e, e2, true);
-            return null;
+            return assignVecElmts(e);
+            //return null;
             
         } else if( e2 instanceof R0VecSet) {
              R0Expression vec = 
@@ -308,13 +308,36 @@ public class PassMethodsR3 {
      * @param entryExprs
      * @return 
      */
-    public static R3TypedExpr assignVecElmts(R3TypedExpr originalVec,
-            R0Vector tempVec, boolean wholeVector, List <R3TypedExpr> entryVars,
-            List <R3TypedExpr> entryExprs) throws Exception {
+    public static R3TypedExpr assignVecElmts(R3TypedExpr originalVec) throws Exception {
+        
+        List <R3TypedExpr> entryVars = new ArrayList <>();
+            List <R3TypedExpr> entryExprs = new ArrayList <>();
+            
+            List <R3TypedExpr> assignList;
+        
         
         R0Vector actualVec = (R0Vector) originalVec.getE();
-        List <R0Expression> newExprs =   new ArrayList<>(actualVec.getElmts());
-        if (newExprs.isEmpty()) {
+        List <R0Expression> vecElmts =   new ArrayList<>(actualVec.getElmts());
+        
+        //iterate thru the vector elements and add them to the list,
+        //also adding a new var for each expr
+        
+        for(R0Expression curr: vecElmts) {
+            R3TypedExpr curr2 = exposeAllocRecursive((R3TypedExpr) curr);
+            entryVars.add(new R3TypedExpr(nVar("vecInit_" + numUniqueVars++),
+                    curr2.getType()));
+            entryExprs.add(curr2);
+            
+            
+        }
+        
+        
+        
+        //last thing is using the newly defined assignList 
+        //with the actual vector variable as the last element becaue it's being returned
+        
+        
+        
             
             R3TypedExpr finalVec = new R3TypedExpr(new R0Var("finalVec"), originalVec.getType());
             
@@ -325,7 +348,7 @@ public class PassMethodsR3 {
             R0Add spaceUsedAfter = nAdd(new R3GlobalValue("free_ptr"),nInt(bytes));
             R0If condCollect = new R0If(new R3TypedExpr(nCmp(nLess(),  
                                         spaceUsedAfter,
-                                        new R3GlobalValue("fromspace__end")), R3Bool())
+                                        new R3GlobalValue("fromspace_end")), R3Bool())
                                     ,new R3TypedExpr(nVoid(), R3Void()),
                                     new R3TypedExpr(new R3Collect(nInt(bytes)), R3Void()));
             
@@ -349,7 +372,7 @@ public class PassMethodsR3 {
             for(R3TypedExpr curr:entryVars) {
                 index++;
                 vecSets.add(new R3TypedExpr(
-                        nVecSet(entryVars.get(index), nInt(index), entryExprs.get(index))
+                        nVecSet(finalVec, nInt(index), entryVars.get(index))
                         , R3Void()));
             }
             
@@ -362,28 +385,33 @@ public class PassMethodsR3 {
             beginList.add(new R3TypedExpr(allocate, R3Void()));
             beginList.addAll(vecSets);
             beginList .add(finalVec);
-            return new R3TypedExpr(nBeginR3(beginList), originalVec.getType());
+            //return new R3TypedExpr(nBeginR3(beginList), originalVec.getType());
+            
+            entryVars.add(new R3TypedExpr(nVar("allocatedVec"+ numUniqueVars++), originalVec.getType()));
+            entryExprs.add(new R3TypedExpr(nBeginR3(beginList), originalVec.getType()));
+            
+            return assignList(entryVars, entryExprs);
                     
                     //return the condcollect and the vecsets and a final assignment
                     //to the temp vector variable as a begin
-        }
-        //for the adding expressions with variables i could've used a map but i got sick of maps
-        //and it's not more useful in this case, 
-        //just makes the function call slightly more verbose to have 2 lists
-        R3TypedExpr currElmt =(R3TypedExpr) newExprs.get(0);
-        R3TypedExpr exposedCurr = exposeAllocRecursive(currElmt);
-        String currVarName = "_vecInit_" +numUniqueVars;
-        entryVars.add(new R3TypedExpr(nVar(currVarName), exposedCurr.getType()));
-        entryExprs.add(exposedCurr);
-        newExprs.remove(0);
-        R0Vector newVec = new R0Vector(newExprs);
-        //recursive call to exposeVector
-        //let xn en
-        //this is void because it's just a bunch of vector sets
-        return new R3TypedExpr(nLet(nVar(currVarName), 
-                exposedCurr,
-                currElmt),R3Type.R3Void());
-        //return null;
+        
+//        //for the adding expressions with variables i could've used a map but i got sick of maps
+//        //and it's not more useful in this case, 
+//        //just makes the function call slightly more verbose to have 2 lists
+//        R3TypedExpr currElmt =(R3TypedExpr) newExprs.get(0);
+//        //R3TypedExpr exposedCurr = exposeAllocRecursive(currElmt);
+//        String currVarName = "_vecInit_" +numUniqueVars;
+//        entryVars.add(new R3TypedExpr(nVar(currVarName), exposedCurr.getType()));
+//        entryExprs.add(exposedCurr);
+//        newExprs.remove(0);
+//        R0Vector newVec = new R0Vector(newExprs);
+//        //recursive call to exposeVector
+//        //let xn en
+//        //this is void because it's just a bunch of vector sets
+//        return new R3TypedExpr(nLet(nVar(currVarName), 
+//                exposedCurr,
+//                currElmt),R3Type.R3Void());
+//        //return null;
     }
     
     

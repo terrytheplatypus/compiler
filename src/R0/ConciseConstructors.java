@@ -98,5 +98,24 @@ public class ConciseConstructors {
         }
     }
     
+    /*
+    this function should only be used when vars and exprs are the same length.
+    could also implement this to work with plain R0Expression but it's only used with 
+    expose allocation so there's no point
+    */
+    public static R3TypedExpr assignList(List <R3TypedExpr> vars, List <R3TypedExpr> exprs) throws Exception {
+        if(vars.size() == 1) {
+            if(exprs.size()!= 1) 
+                throw new Exception("assignlist has mismatched size of var and expr lists");
+            else {
+                return new R3TypedExpr(nLet(vars.get(0), exprs.get(0), vars.get(0)), 
+                                            exprs.get(0).getType());
+            }
+        }
+        R3Type expType = exprs.get(exprs.size()-1).getType();
+        R3TypedExpr x = vars.remove(0);
+        R3TypedExpr xe = exprs.remove(0);
+        return new R3TypedExpr(nLet(x, xe, assignList(vars, exprs)), expType);
+    }
     
 }

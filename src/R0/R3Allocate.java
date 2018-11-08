@@ -13,8 +13,8 @@ import java.util.List;
  */
 public class R3Allocate implements R0Expression{
 
-    R0Int len;
-    R3Type type;
+    private R0Int len;
+    private R3Type type;
     
     /*
     as an abstraction allocate returns a vector
