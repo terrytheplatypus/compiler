@@ -10,5 +10,6 @@ package R0;
  * @author tennisers
  */
 public class R0GrEq implements R0CmpOp{
-    
+    @Override
+    public String stringify() {return ">=";}
 }

@@ -3,13 +3,22 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package R0;
+package C0;
 
 /**
  *
  * @author tennisers
  */
-public class R0Less implements R0CmpOp{
- @Override
-    public String stringify() {return "<";}   
+public class C2Collect implements C0Stmt{
+    C0Int bytes;
+
+    public C2Collect(C0Int bytes) {
+        this.bytes = bytes;
+    }
+
+    public C0Int getBytes() {
+        return bytes;
+    }
+    
+    
 }

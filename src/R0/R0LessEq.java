@@ -10,5 +10,6 @@ package R0;
  * @author tennisers
  */
 public class R0LessEq implements R0CmpOp{
-    
+    @Override
+    public String stringify() {return "<=";}
 }

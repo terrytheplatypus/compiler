@@ -77,11 +77,18 @@ public class R0Vector implements R0Expression, R0Basic, R0Persistent {
             
             if(x instanceof R3TypedExpr) x = ((R3TypedExpr) x).getE();
             
+            if( x instanceof R0Basic) {
             R0Basic x1 = (R0Basic) x;
                 if(x1 instanceof R0Literal) 
                     result += ((R0Literal) x1).stringify();
+                if(x1 instanceof R0Var) {
+                    result += ((R0Var) x1).getName();
+                }
                 else if(x1 instanceof R0Vector)
                     result +=  stringifyHelper(x1);
+            } else if( x instanceof R0Var) {
+                result += ((R0Var) x).getName();
+            }
             if(it.hasNext()) result +=", ";
         }
         result +=">";

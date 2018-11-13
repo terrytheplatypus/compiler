@@ -10,5 +10,5 @@ package R0;
  * @author tennisers
  */
 public interface R0CmpOp {
-    
+    String stringify();
 }

@@ -219,8 +219,9 @@ public class R3Interpreter {
                 R0Vector vec = (R0Vector) varList.get(var.getName());
                 //this should work because it's returning a reference
                 int index = ((R0VecSet) e).getIndex().getVal();
-                R0Expression newVal = ((R0VecSet) e).getNewVal();
-                vec.getElmts().set(index, newVal);
+                R0Expression newVal =  ((R0VecSet) e).getNewVal();
+                R0Expression newVal2 = ExpressionInterpretRecursive(newVal, varList);
+                vec.getElmts().set(index, newVal2);
 
             }
             return new R0Void();
@@ -245,7 +246,7 @@ public class R3Interpreter {
                 vec = (R0Vector) ExpressionInterpret((arg1));
             }
             if (vec == null) {
-                System.err.println("sdfsd");
+                System.err.println("vector is null in vecset");
             }
             R0Expression ret = vec.getElmts().get(((R0VecRef) e).getIndex().getVal());
             R0Basic val = ExpressionInterpretRecursive(ret, varList);
@@ -262,8 +263,11 @@ public class R3Interpreter {
         } else if( e instanceof  R3Collect) {
             return new R0Void();
         }
+        if(e instanceof R0Void) {
+            return new R0Void();
+        }
 //        if(e instanceof R0)
-        System.out.println("error interpreting R0 expression");
+        System.out.println("error interpreting R0 expression for "+ e.getClass());
         return null;
     }
     
@@ -280,225 +284,173 @@ public class R3Interpreter {
     
     //need separate methods for going through references to get and set the actual
     //vectors, as opposed to 
-//    
-//    
-//     public static String R3Print(R0Program p) throws Exception {
-//        return ExpressionPrint(p.getExp());
-//    }
-//
-//    public static String R3Print(R3TypedProgram p) throws Exception {
-//        return ExpressionPrint(p.getExp());
-//    }
-//
-//    public static String ExpressionPrint(R0Expression e) throws Exception {
-//        if (e instanceof R3TypedExpr) {
-//            e = ((R3TypedExpr) e).getE();
-//        }
-//        Map<String, R0Basic> varList = new HashMap<>();
-//        return ExpressionPrintRecursive(e, varList, 0);
-//    }
-//
-//    public static String ExpressionPrintRecursive(R0Expression e, Map<String, R0Basic> varList, 
-//            int depth) throws Exception {
-//
-//        if (e instanceof R3TypedExpr) {
-//            e = ((R3TypedExpr) e).getE();
-//        }
-//
-//        if(e instanceof R3GlobalValue) {
-//            return ((R3GlobalValue) e).getName();
-//        }
-//        
-//        //int case
-//        if (e instanceof R0Int) {
-//            //System.out.println("Int");
-//            return ((R0Int) e).stringify();
-//        }
-//        //literal bool case
-//        if (e instanceof R0LitBool) {
-//            return ((R0LitBool) e).stringify();
-//        }
-//        if (e instanceof R0Vector) {
-//            List<R0Expression> newExps = new ArrayList<>();
-//
-//            for (R0Expression exp : ((R0Vector) e).getElmts()) {
-//                newExps.add(ExpressionInterpretRecursive(exp, varList));
-//            }
-//            synchronized (vectors) {
-//                vectors.add(new R0Vector(newExps));
-//            }
-//            int index = vectors.size() - 1;
-//            //this gives you the actual instance of the vector
-//            return vectors.get(index);
-//        } //var case
-//        else if (e instanceof R0Var) {
-//            //System.out.println("Var");
-//            if (varList.get(((R0Var) e).getName()) == null) {
-//                System.err.println("Interpreter error:variable: " +((R0Var) e).getName() +
-//                        " used before declared");
-//            }
-//            return varList.get(((R0Var) e).getName());
-//        } //negate case
-//        else if (e instanceof R0Neg) {
-//            //System.out.println("Neg");
-//            //if R0Neg is being performed, it assumes
-//            //e's value is int, if it isn't then it will throw error
-//            //thus, Java itself does type checking, limiting the amount
-//            // of type checking that I need to actually do
-//            R0Int init = (R0Int) ExpressionInterpretRecursive(((R0Neg) e).getChild(), varList);
-//
-//            return new R0Int(-init.getVal());
-//        } //add case
-//        else if (e instanceof R0Add) {
-//            //System.out.println("Add");
-//            List<R0Expression> l = ((R0Add) e).getChildren();
+    
+    
+     public static String R3Print(R0Program p) throws Exception {
+        return ExpressionPrint(p.getExp());
+    }
+
+    public static String R3Print(R3TypedProgram p) throws Exception {
+        return ExpressionPrint(p.getExp());
+    }
+
+    public static String ExpressionPrint(R0Expression e) throws Exception {
+        if (e instanceof R3TypedExpr) {
+            e = ((R3TypedExpr) e).getE();
+        }
+        Map<String, R0Basic> varList = new HashMap<>();
+        return ExpressionPrintRecursive(e,  0);
+    }
+
+    public static String ExpressionPrintRecursive(R0Expression e, 
+            int depth) throws Exception {
+        String indent;
+        if(depth > 0) indent =  String.format("\n%1$" + depth+"s","");
+        else indent = "";
+        if (e instanceof R3TypedExpr) {
+            e = ((R3TypedExpr) e).getE();
+        }
+
+        if(e instanceof R3GlobalValue) {
+            return ((R3GlobalValue) e).getName();
+        }
+        
+        //int case
+        if (e instanceof R0Int) {
+            //System.out.println("Int");
+            return ((R0Int) e).stringify();
+        }
+        //literal bool case
+        if (e instanceof R0LitBool) {
+            return ((R0LitBool) e).stringify();
+        }
+        if (e instanceof R0Vector) {
+            //return ((R0Vector) e).stringify();
+            for( R0Expression curr: ((R0Vector) e).getElmts()) {
+                ExpressionPrintRecursive(curr, depth+1);
+            }
+        } //var case
+        else if (e instanceof R0Var) {
+            return ((R0Var) e).getName();
+        } //negate case
+        else if (e instanceof R0Neg) {
+            //System.out.println("Neg");
+            //if R0Neg is being performed, it assumes
+            //e's value is int, if it isn't then it will throw error
+            //thus, Java itself does type checking, limiting the amount
+            // of type checking that I need to actually do
+            String init = ExpressionPrintRecursive(((R0Neg) e).getChild(), depth);
+
+            return indent + "(neg " +init + ")";
+        } //add case
+        else if (e instanceof R0Add) {
+            //System.out.println("Add");
+            List<R0Expression> l = ((R0Add) e).getChildren();
 //            int sum = ((R0Int) ExpressionInterpretRecursive(l.get(0), varList)).getVal() + ((R0Int) ExpressionInterpretRecursive(l.get(1), varList)).getVal();
-//            return new R0Int(sum);
-//
-//        } //let case
-//        else if (e instanceof R0Let) {
-//            //System.out.println("Let");
-//            List<R0Expression> l = ((R0Let) e).getChildren();
-//            R0Var v = (R0Var) l.get(0);
-//            //System.out.println("assign to x");
-//            R0Basic xe = ExpressionInterpretRecursive(l.get(1), varList);
-//            varList.put(v.getName(), xe);
-//
-//            //if it's a vector put it in the vectorVals map
-////            if(xe instanceof R0Vector) {
-////                synchronized(vectors) {
-////                    //vectorVals.put(v, (R0Vector) xe);
-////                    vectors.add((R0Vector) xe);
-////                    varList.put(v.getName(), xe);
-////                }
-////            }
-//            //System.out.println("body expression");
-//            R0Basic be = ExpressionInterpretRecursive(l.get(2), varList);
-//            return be;
-//        } else if (e instanceof R0Read) {
-//            //either assume that read still only takes ints,
-//            // or let it take bool as well
-//            System.out.println("Enter a value:");
-//            return new R0Int((new Scanner(System.in)).nextInt());
-//        } //this is for the comparison
-//        else if (e instanceof R0Cmp) {
-//            //get literal value of lhs, literal value of rhs, compare
-//            R0Basic lhs = ExpressionInterpretRecursive(((R0Cmp) e).getA(), varList);
-//            R0Basic rhs = ExpressionInterpretRecursive(((R0Cmp) e).getB(), varList);
-//            R0CmpOp op = ((R0Cmp) e).getOp();
-//
-//            if (!lhs.getClass().equals(rhs.getClass())) {
-//                throw new Exception("oops");
-//            }
-//            //this next part should throw exception if there's type mismatch
-//            if (op instanceof R0Eq) {
-//                return new R0LitBool(lhs.equals(rhs));
-//            } else if ((lhs instanceof R0Int) && rhs instanceof R0Int) {
-//                int lhsVal = ((R0Int) lhs).getVal();
-//                int rhsVal = ((R0Int) rhs).getVal();
-//                if (op instanceof R0Gr) {
-//                    return new R0LitBool(lhsVal > rhsVal);
-//                } else if (op instanceof R0GrEq) {
-//                    return new R0LitBool(lhsVal >= rhsVal);
-//                } else if (op instanceof R0Less) {
-//                    return new R0LitBool(lhsVal < rhsVal);
-//                } else if (op instanceof R0LessEq) {
-//                    return new R0LitBool(lhsVal <= rhsVal);
+            
+            return indent+ExpressionPrintRecursive(l.get(0), depth+1) +" + " +
+                    ExpressionPrintRecursive(l.get(1), depth+1);
+
+        } //let case
+        else if (e instanceof R0Let) {
+            //System.out.println("Let");
+            List<R0Expression> l = ((R0Let) e).getChildren();
+            R0Var v;
+            
+            if(l.get(0)  instanceof R3TypedExpr) {
+                 v = (R0Var) ((R3TypedExpr) l.get(0)).getE();
+            } else {
+                 v = (R0Var) l.get(0);
+            }
+            
+            //System.out.println("assign to x");
+            String xe = ExpressionPrintRecursive(l.get(1), depth+1);
+
+            //if it's a vector put it in the vectorVals map
+//            if(xe instanceof R0Vector) {
+//                synchronized(vectors) {
+//                    //vectorVals.put(v, (R0Vector) xe);
+//                    vectors.add((R0Vector) xe);
+//                    varList.put(v.getName(), xe);
 //                }
-//            } else {
-//                System.err.println("Comparison error");
 //            }
-//        } else if (e instanceof R0Not) {
-//            boolean b = ((R0LitBool) ExpressionInterpretRecursive(((R0Not) e).getX(), varList)).getVal();
-//            return new R0LitBool(!b);
-//        } else if (e instanceof R0If) {
-//            boolean flag = ((R0LitBool) ExpressionInterpretRecursive(((R0If) e).getCond(), varList)).getVal();
-//            if (flag) {
-//                R0Basic ret = ExpressionInterpretRecursive(((R0If) e).getRetIf(), varList);
-////                    if(ret instanceof R0Int) {
-////                        return (R0Int) ret;
-////                    } else if(ret instanceof R0LitBool) {
-////                        return (R0LitBool) ret;
-////                    }
-//                return ret;
-//            } else {
-//
-//                R0Basic ret = ExpressionInterpretRecursive(((R0If) e).getRetElse(), varList);
-////                    if(ret instanceof R0Int) {
-////                        return (R0Int) ret;
-////                    } else if(ret instanceof R0LitBool) {
-////                        return (R0LitBool) ret;
-////                    }
-//                return ret;
-//            }
-//
-//        } else if (e instanceof R0And) {
-//            R0LitBool a = (R0LitBool) ExpressionInterpretRecursive(((R0And) e).getA(), varList);
-//            if (a.getVal() == false) {
-//                return new R0LitBool(false);
-//            }
-//            R0LitBool b = (R0LitBool) ExpressionInterpretRecursive(((R0And) e).getB(), varList);
-//            boolean result = a.getVal() && b.getVal();
-//            return new R0LitBool(result);
-//        } else if (e instanceof R0VecSet) {
-//            //first argument can technically either be a vector or a variable,
-//            //but bcuz it doesn't return anything
-//            // it would only be useful for variables
-//            
-//            //if it's interpreting an R3TypedProgram then it needs to see
-//            //the expression inside the first argument
-//            
-//            R0Expression arg1 = ((R0VecSet) e).getVec();
-//            if(arg1 instanceof R3TypedExpr) {
-//                arg1 = ((R3TypedExpr) arg1).getE();
-//            }
-//            
-//            R0Var var = (R0Var) arg1;
-//            synchronized (vectors) {
-//                R0Vector vec = (R0Vector) varList.get(var.getName());
-//                //this should work because it's returning a reference
-//                int index = ((R0VecSet) e).getIndex().getVal();
-//                R0Expression newVal = ((R0VecSet) e).getNewVal();
-//                vec.getElmts().set(index, newVal);
-//
-//            }
-//            return new R0Void();
-//        } else if (e instanceof R0VecRef) {
-//            
-//            //if it's interpreting an R3TypedProgram then it needs to see
-//            //the expression inside the first argument
-//            
-//            R0Expression arg1 = ((R0VecRef) e).getVec();
-//            if(arg1 instanceof R3TypedExpr) {
-//                arg1 = ((R3TypedExpr) arg1).getE();
-//            }
-//            
-//            R0Vector vec;
-//            
-//            if (arg1 instanceof R0Var) {
-//                R0Var var = (R0Var) arg1;
-//                vec = (R0Vector) varList.get(var.getName());
-//            } else {
-//                //if it's not a variable it's a literal vector
-//                //if it's not a vector then it errors out
-//                vec = (R0Vector) ExpressionInterpret((arg1));
-//            }
-//            if (vec == null) {
-//                System.err.println("sdfsd");
-//            }
-//            R0Expression ret = vec.getElmts().get(((R0VecRef) e).getIndex().getVal());
-//            R0Basic val = ExpressionInterpretRecursive(ret, varList);
-//            return val;
-//        } else if (e instanceof  R3Allocate) {
-//            return new R0Void();
-//            
-//        } else if( e instanceof  R3Collect) {
-//            return new R0Void();
-//        }
-////        if(e instanceof R0)
-//        System.out.println("error interpreting R0 expression");
-//        return null;
-//    }
+            //System.out.println("body expression");
+            String be = ExpressionPrintRecursive(l.get(2), depth+1);
+            return indent+" ( let " +v.getName() +" " + xe +" " + be +" )";
+        } else if (e instanceof R0Read) {
+            //either assume that read still only takes ints,
+            // or let it take bool as well
+            return "(read)";
+        } //this is for the comparison
+        else if (e instanceof R0Cmp) {
+            //get literal value of lhs, literal value of rhs, compare
+            String lhs = ExpressionPrintRecursive(((R0Cmp) e).getA(), depth+1);
+            String rhs = ExpressionPrintRecursive(((R0Cmp) e).getB(), depth+1);
+            R0CmpOp op = ((R0Cmp) e).getOp();
+
+            return lhs + op.stringify() + rhs;
+        } else if (e instanceof R0Not) {
+            String b =  ExpressionPrintRecursive(((R0Not) e).getX(), depth+1);
+            return indent+"( not " + b +" )";
+        } else if (e instanceof R0If) {
+            String cond = ExpressionPrintRecursive(((R0If) e).getCond(), depth+2);
+                String ifBranch = ExpressionPrintRecursive(((R0If) e).getRetIf(), depth+2);
+                String elseBranch = ExpressionPrintRecursive(((R0If) e).getRetElse(), depth+2);
+                return "( if ("+ cond +") then ("+ifBranch +") else (" + elseBranch +") )";
+        } else if (e instanceof R0And) {
+            String a = ExpressionPrintRecursive(((R0And) e).getA(), depth+1);
+            String b = ExpressionPrintRecursive(((R0And) e).getB(), depth+1);
+            
+            return " (and "+ a + " " + b +" )";
+        } else if (e instanceof R0VecSet) {
+            //first argument can technically either be a vector or a variable,
+            //but bcuz it doesn't return anything
+            // it would only be useful for variables
+            
+            //if it's interpreting an R3TypedProgram then it needs to see
+            //the expression inside the first argument
+            
+            R0Expression arg1 = ((R0VecSet) e).getVec();
+            if(arg1 instanceof R3TypedExpr) {
+                arg1 = ((R3TypedExpr) arg1).getE();
+            }
+            int index = ((R0VecSet) e).getIndex().getVal();
+                R0Expression newVal = ((R0VecSet) e).getNewVal();
+            
+            
+            R0Var var = (R0Var) arg1;
+            return indent + "(vec_set " + ExpressionPrintRecursive(arg1, depth+1) +" "
+                    + index + ExpressionPrintRecursive(newVal, depth+1);
+            
+            
+        } else if (e instanceof R0VecRef) {
+            
+            //if it's interpreting an R3TypedProgram then it needs to see
+            //the expression inside the first argument
+            
+            R0Expression arg1 = ((R0VecRef) e).getVec();
+            if(arg1 instanceof R3TypedExpr) {
+                arg1 = ((R3TypedExpr) arg1).getE();
+            }
+            
+            String vec = ExpressionPrintRecursive(arg1, depth+1);
+            if (vec == null) {
+                System.err.println("sdfsdsafadf");
+            }
+            return indent + "( vecref " + vec + " " + ((R0VecRef) e).getIndex().stringify() +" )";
+        } else if (e instanceof  R3Allocate) {
+            return "(allocate " +((R3Allocate) e).getLen().getVal() + " "+ 
+                    ((R3Allocate) e).getType().toString() +")";
+            
+        } else if( e instanceof  R3Collect) {
+            return "(collect " +((R3Collect) e).getBytes() +")";
+        }
+       if(e instanceof R0Void) {
+           return "void";
+       }
+        System.out.println("error printing R0 expression for "+ e.getClass());
+        return null;
+    }
     
     
 }

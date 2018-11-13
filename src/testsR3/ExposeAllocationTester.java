@@ -7,6 +7,7 @@ package testsR3;
 
 import R0.R0Test;
 import R0.R3Interpreter;
+import static R0.R3Interpreter.R3Print;
 import R0.R3TypeChecker;
 import R0.R3TypedProgram;
 import static compilerPasses.PassMethodsR3.*;
@@ -23,7 +24,7 @@ public class ExposeAllocationTester {
     for(R0Test t:testList) {
             System.out.println(n++);
         try {
-            if(n < 19) continue;
+            if(n < 13) continue;
             System.out.println("Expected value: "+t.getExpectedVal());
             String result = R3Interpreter.R3Interpret(t.getProg()).stringify();
             
@@ -45,6 +46,10 @@ public class ExposeAllocationTester {
             System.out.println("Value after uniquify: "+ result3 );
             
             R3TypedProgram exposed = exposeAllocation(u);
+            
+            String exposedPrint = R3Print(exposed);
+            
+            System.out.println(exposedPrint);
             
             String result4 = R3Interpreter.R3Interpret(exposed).stringify();
             System.out.println("Value after expose allocation: "+ result4 );
