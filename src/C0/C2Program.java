@@ -12,30 +12,33 @@ import java.util.Map;
 
 /**
  *
- * @author david
+ * @author tennisers
  */
-public class C0Program {
+public class C2Program {
     private List<C0Var> varList;
+    Map <String, R3Type> varsWithTypes;
     private List <C0Stmt> stmtList;
     private C0Arg returnArg;
     
     //next elmt is added for garbage collection
-    Map <String, R3Type> varsWithTypes;
+    R3Type progType;
 
-    public C0Program(List<C0Var> varList, List<C0Stmt> stmtList, C0Arg returnArg, Map<String, R3Type> varsWithTypes) {
+    public C2Program(List<C0Var> varList, Map<String, R3Type> varsWithTypes, List<C0Stmt> stmtList, R3Type progType, C0Arg returnArg) {
         this.varList = varList;
-        this.stmtList = stmtList;
-        this.returnArg = returnArg;
         this.varsWithTypes = varsWithTypes;
-    }
-    
-    
-
-    public C0Program(List<C0Var> varList, List<C0Stmt> stmtList, C0Arg returnArg) {
-        this.varList = varList;
         this.stmtList = stmtList;
         this.returnArg = returnArg;
+        this.progType = progType;
     }
+    
+    public C2Program (Map<String, R3Type> varsWithTypes, List<C0Stmt> stmtList, R3Type progType, C0Arg returnArg) {
+        this.varsWithTypes = varsWithTypes;
+        this.stmtList = stmtList;
+        this.returnArg = returnArg;
+        this.progType = progType;
+    }
+
+    
 
     public C0Arg getReturnArg() {
         return returnArg;
@@ -58,6 +61,10 @@ public class C0Program {
 
     public Map<String, R3Type> getVarsWithTypes() {
         return varsWithTypes;
+    }
+
+    public R3Type getProgType() {
+        return progType;
     }
     
     

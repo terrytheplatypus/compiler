@@ -10,5 +10,8 @@ package C0;
  * @author tennisers
  */
 public class C2Void implements C0Expression{
+
+    public C2Void() {
+    }
     
 }

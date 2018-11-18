@@ -395,101 +395,115 @@ public class PassMethodsR3 {
                     //return the condcollect and the vecsets and a final assignment
                     //to the temp vector variable as a begin
         
-//        //for the adding expressions with variables i could've used a map but i got sick of maps
-//        //and it's not more useful in this case, 
-//        //just makes the function call slightly more verbose to have 2 lists
-//        R3TypedExpr currElmt =(R3TypedExpr) newExprs.get(0);
-//        //R3TypedExpr exposedCurr = exposeAllocRecursive(currElmt);
-//        String currVarName = "_vecInit_" +numUniqueVars;
-//        entryVars.add(new R3TypedExpr(nVar(currVarName), exposedCurr.getType()));
-//        entryExprs.add(exposedCurr);
-//        newExprs.remove(0);
-//        R0Vector newVec = new R0Vector(newExprs);
-//        //recursive call to exposeVector
-//        //let xn en
-//        //this is void because it's just a bunch of vector sets
-//        return new R3TypedExpr(nLet(nVar(currVarName), 
-//                exposedCurr,
-//                currElmt),R3Type.R3Void());
-//        //return null;
+
     }
     
     
     
     /**
-     * IIMPORTANT: C0Program is assumed to have no duplicate variable names
+     * IIMPORTANT: C2Program is assumed to have no duplicate variable names
     /* so it should only be run with a uniquified R0Program,
     * also if run with un-uniquified program, it may run into name collisions
      * @param p
      * @return 
      */
-    public static C0Program flatten(R0Program p){
+    public static C2Program flatten(R3TypedProgram p) throws Exception{
         
         return flattenRecursive(p.getExp());
     }
     //R0 expression for func arg
-    private static C0Program flattenRecursive(R0Expression e) {
-        //C0Program: <vars, statements, arg>
+    private static C2Program flattenRecursive(R0Expression e1) throws Exception {
+        //C2Program: <vars, statements, arg>
         List <C0Var> vars =new ArrayList<>();
+        Map <String, R3Type> varsWithTypes = new HashMap<>();
         List <C0Stmt> stmts = new ArrayList<>();
         C0Arg arg;
+        R3Type expType = null;
+        R0Expression e = null;
+        //because this is used after typecheck, e1 should always be
+        //instance of R3TypedExpr, it's just done this way so I have
+        //to change less code
+        /*
+        part of what i've realized with this project that is much better to
+        throw exceptions when something goes wrong in java, even if adding exception
+        handling makes clunkier code
+        */
+        if(e1 instanceof R3TypedExpr) {
+           e = ((R3TypedExpr) e1).getE();
+           expType = ((R3TypedExpr) e1).getType();
+        }
+        else throw new Exception("Non-typed expression used in flatten");
+        
         //cases:
         //int: F(int) = < null, null, int>
         if(e instanceof R0Int) {
-            return new C0Program(vars, stmts, new C0Int(((R0Int) e).getVal()));
+            return new C2Program(vars, varsWithTypes, stmts, expType,  new C0Int(((R0Int) e).getVal()));
         }
         //read <rv, (rv:=(read)), rv>
         else if(e instanceof R0Read) {
             C0Var rv = new C0Var("read_"+String.valueOf(numUniqueVars++));
             vars.add(rv);
+            varsWithTypes.put(rv.getName(), expType);
             C0Assign assignRead = new C0Assign(rv, new C0Read());
             stmts.add(assignRead);
-            return new C0Program(vars, stmts, rv);
+            return new C2Program(vars, varsWithTypes, stmts, expType, rv);
         }
         //neg(e) ( let <vs, ss, earg> = F(e) -> <nv ++vs, ss++(:= nv(-earg)), nv>
         else if(e instanceof R0Neg) {
             C0Var nv = new C0Var("neg_"+String.valueOf(numUniqueVars++));
-            C0Program fe = flattenRecursive(((R0Neg) e).getChild());
+            C2Program fe = flattenRecursive(((R0Neg) e).getChild());
             vars.add(nv);
+            varsWithTypes.put(nv.getName(), expType);
             vars.addAll(fe.getVarList());
             stmts.addAll(fe.getStmtList());
             stmts.add(new C0Assign(nv, new C0Neg(fe.getReturnArg())));
-            return new C0Program(vars, stmts, nv);
+            return new C2Program(vars, varsWithTypes, stmts, expType, nv);
         }
         //add F(e1) = <vs1, ss1, ea1>, F(e2) = <vs2, ss2, ea2> = F(e2)
         //<vs1++vs2++av, ss1++ss2++(av = (+ ea1 ea2)), av>
         else if(e instanceof R0Add) {
             C0Var av = new C0Var("addReturn_"+String.valueOf(numUniqueVars++));
             vars.add(av);
-            C0Program fe1 = flattenRecursive(e.getChildren().get(0));
-            C0Program fe2 = flattenRecursive(e.getChildren().get(1));
+            varsWithTypes.put(av.getName(),expType);
+            varsWithTypes.put(av.getName(), expType);
+            C2Program fe1 = flattenRecursive(e.getChildren().get(0));
+            C2Program fe2 = flattenRecursive(e.getChildren().get(1));
             vars.addAll(fe1.getVarList());
+            varsWithTypes.putAll(fe1.getVarsWithTypes());
             vars.addAll(fe2.getVarList());
+            varsWithTypes.putAll(fe2.getVarsWithTypes());
             stmts.addAll(fe1.getStmtList());
             stmts.addAll(fe2.getStmtList());
             stmts.add(new C0Assign(av, new C0Add(
                     fe1.getReturnArg(), 
                     fe2.getReturnArg())));
-            return new C0Program(vars, stmts, av);
+            return new C2Program(vars, varsWithTypes, stmts, expType, av);
         }
         //var < {var}, null, var>
         else if(e instanceof R0Var) {
             vars.add(new C0Var(((R0Var)e)));
-            return new C0Program(vars, stmts, new C0Var((R0Var)e));
+            varsWithTypes.put(((R0Var) e).getName(), expType);
+            return new C2Program(vars, varsWithTypes, stmts, expType, new C0Var((R0Var)e));
         }
         //F(let x e1 e2) = <vs1 ++ vs2 ++ {x}, ss ++ (:= x ea1) ++ ss2, ea2>
         else if(e instanceof R0Let) {
             C0Var x = new C0Var( (R0Var) e.getChildren().get(0));
-            C0Program fe1 = flattenRecursive(e.getChildren().get(1));
-            C0Program fe2 = flattenRecursive(e.getChildren().get(2));
+            C2Program fe1 = flattenRecursive(e.getChildren().get(1));
+            C2Program fe2 = flattenRecursive(e.getChildren().get(2));
+            
             vars.addAll(fe1.getVarList());
             vars.addAll(fe2.getVarList());
             vars.add(x);
+            
+            varsWithTypes.putAll(fe1.getVarsWithTypes());
+            varsWithTypes.putAll(fe2.getVarsWithTypes());
+            varsWithTypes.put(x.getName(), expType);
+            
             stmts.addAll(fe1.getStmtList());
             stmts.add(new C0Assign(x, fe1.getReturnArg()));
             stmts.addAll(fe2.getStmtList());
             arg = fe2.getReturnArg();
-            return new C0Program(vars, stmts, arg);
+            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
         }
         
         //adding if/else stuff
@@ -501,10 +515,13 @@ public class PassMethodsR3 {
             
             C0Var av = new C0Var("and_"+String.valueOf(numUniqueVars++));
             arg = av;
-            C0Program fe1 = flattenRecursive(e.getChildren().get(0));
-            C0Program fe2 = flattenRecursive(e.getChildren().get(1));
+            varsWithTypes.put(av.getName(), expType);
+            C2Program fe1 = flattenRecursive(e.getChildren().get(0));
+            C2Program fe2 = flattenRecursive(e.getChildren().get(1));
             vars.addAll(fe1.getVarList());
+            varsWithTypes.putAll(fe1.getVarsWithTypes());
             vars.addAll(fe2.getVarList());
+            varsWithTypes.putAll(fe2.getVarsWithTypes());
             
             stmts.addAll(fe1.getStmtList());
             stmts.addAll(fe2.getStmtList());
@@ -527,7 +544,7 @@ public class PassMethodsR3 {
            C0If deSugaredAnd = new C0If(checkFirst,cond2, shortCircuitFalse);
             stmts.add(deSugaredAnd);
             
-            return new C0Program(vars, stmts, arg);
+            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
             
         }
         else if(e instanceof R0If) {
@@ -559,8 +576,9 @@ public class PassMethodsR3 {
 //                    if(cond1 instanceof R0Var) {
 //                   cond1 = nCmp(nEq(),cond1, nLitBool(true));
 //                   }
-                    C0Program flatCond = flattenRecursive(cond1);
-                    vars.addAll(flatCond.getVarList());
+                    C2Program flatCond = flattenRecursive(cond1);
+                //    vars.addAll(flatCond.getVarList());
+                    varsWithTypes.putAll(flatCond.getVarsWithTypes());
                     stmts.addAll(flatCond.getStmtList());
                     //cond1 = nCmp(nEq(),cond1, nLitBool(true));
                     finalCmp = new C0Cmp(EQ, 
@@ -577,8 +595,9 @@ public class PassMethodsR3 {
                 
                 R0Cmp cmp = (R0Cmp) cond1;
 //                opValue op = R0CmpOpToString(cmp.getOp() );
-                C0Program cond2 = flattenRecursive(cond1);
-                vars.addAll(cond2.getVarList());
+                C2Program cond2 = flattenRecursive(cond1);
+              //  vars.addAll(cond2.getVarList());
+                varsWithTypes.putAll(cond2.getVarsWithTypes());
                 stmts.addAll(cond2.getStmtList());
 //                R0Expression a = cmp.getA();
 //                R0Expression b = cmp.getB();
@@ -588,8 +607,8 @@ public class PassMethodsR3 {
                         new C0LitBool(true));
             }
             
-            C0Program ifs = flattenRecursive(e.getChildren().get(1));
-            C0Program elses = flattenRecursive(e.getChildren().get(2));
+            C2Program ifs = flattenRecursive(e.getChildren().get(1));
+            C2Program elses = flattenRecursive(e.getChildren().get(2));
             
             //vars.addAll(elses.getVarList());
             
@@ -597,11 +616,13 @@ public class PassMethodsR3 {
             
             
             C0Var ifv = new C0Var("if_"+String.valueOf(numUniqueVars++));
-            vars.add(ifv);
+            //vars.add(ifv);
+            varsWithTypes.put(ifv.getName(), expType);
             arg = ifv;
             
             if(!elseOnly) {
-                vars.addAll(ifs.getVarList());
+                //vars.addAll(ifs.getVarList());
+                varsWithTypes.putAll(ifs.getVarsWithTypes());
                 ifStmts.addAll(ifs.getStmtList());
                 ifStmts.add(new C0Assign(ifv, ifs.getReturnArg()));
                 
@@ -609,7 +630,8 @@ public class PassMethodsR3 {
             
             if(!ifOnly) {
                 
-                vars.addAll(elses.getVarList());
+                //vars.addAll(elses.getVarList());
+                varsWithTypes.putAll(elses.getVarsWithTypes());
                 elseStmts .addAll(elses.getStmtList());
                 elseStmts.add(new C0Assign(ifv, elses.getReturnArg()));
             }
@@ -622,57 +644,119 @@ public class PassMethodsR3 {
             //if elseOnly and not ifOnly add else to the thing
             
             
-            return new C0Program(vars, stmts, arg);
+            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
             
         } else if(e instanceof R0Cmp) {
             C0Var cmpv = new C0Var("cmp_"+String.valueOf(numUniqueVars++));
-            vars.add(cmpv);
+            //vars.add(cmpv);
+            varsWithTypes.put(cmpv.getName(), expType);
             opValue op = R0CmpOpToString(((R0Cmp) e).getOp());
             List<R0Expression> cs = e.getChildren();
-            C0Program a = flattenRecursive(((R0Cmp) e).getA());
-            C0Program b = flattenRecursive(((R0Cmp) e).getB());
-            vars.addAll(a.getVarList());
-            vars.addAll(b.getVarList());
+            C2Program a = flattenRecursive(((R0Cmp) e).getA());
+            C2Program b = flattenRecursive(((R0Cmp) e).getB());
+            //vars.addAll(a.getVarList());
+            varsWithTypes.putAll(a.getVarsWithTypes());
+            //vars.addAll(b.getVarList());
+            varsWithTypes.putAll(b.getVarsWithTypes());
             stmts.addAll(a.getStmtList());
             stmts.addAll(b.getStmtList());
             arg = cmpv;
             stmts.add(new C0Assign(cmpv, 
                     new C0Cmp(op, a.getReturnArg(), b.getReturnArg()) ));
-            return new C0Program(vars, stmts, arg);
+            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
             
         } else if ( e instanceof R0Not) {
             C0Var notv = new C0Var("not_"+String.valueOf(numUniqueVars++));
             arg = notv;
             List<R0Expression> cs = e.getChildren();
-            C0Program x = flattenRecursive(((R0Not) e).getX());
-            vars.addAll(x.getVarList());
-            vars.add(notv);
+            C2Program x = flattenRecursive(((R0Not) e).getX());
+            //vars.addAll(x.getVarList());
+            varsWithTypes.putAll(x.getVarsWithTypes());
+            //vars.add(notv);
+            varsWithTypes.put(notv.getName(), expType);
             stmts.addAll(x.getStmtList());
             stmts.add(new C0Assign(notv, new C0Not(x.getReturnArg())));
-            return new C0Program(vars, stmts, arg);
+            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
             
         }
-         if(e instanceof R0LitBool) {
-            return new C0Program(vars, stmts, new C0LitBool(((R0LitBool) e).getVal()));
-         }
+        else if(e instanceof R0LitBool) {
+            return new C2Program(vars, varsWithTypes, stmts, expType, new C0LitBool(((R0LitBool) e).getVal()));
+        } 
         
-        return null;
+        /*******VECTOR STUFF*********/
+        //after expose-allocation step, there are no more literal vectors,
+        //so you don't need to match for that
+        else if (e instanceof R3Allocate) {
+            int len = ((R3Allocate) e).getLen().getVal();
+            R3Type type = ((R3Allocate) e).getType();
+            C0Var allocateVar = new C0Var("allocate_"+String.valueOf(numUniqueVars++));
+            //vars.add(allocateVar);
+            varsWithTypes.put(allocateVar.getName(), expType);
+            stmts.add(new C0Assign(allocateVar, new C2Allocate(new C0Int(len), type)));
+            return new C2Program(vars, varsWithTypes, stmts, expType, allocateVar);
+            
+        } else if(e instanceof R3Collect) {
+            C0Var collV = new C0Var("collect_"+String.valueOf(numUniqueVars++));
+            int bytes = ((R3Collect) e).getBytes().getVal();
+            stmts.add(new C2Collect(new C0Int(bytes)));
+            stmts.add(new C0Assign(collV, new C2Void()));
+            //vars.add(collV);
+            varsWithTypes.put(collV.getName(), expType);
+            //return arg is null because there's no return from R3Collect
+            return new C2Program(vars, varsWithTypes, stmts, expType, collV);
+            
+        } else if (e instanceof R0Void) {
+            //return arg is null because there's no return from R3Collect
+            C0Var voidV = new C0Var("void_"+String.valueOf(numUniqueVars++));
+            //vars.add(voidV);
+            varsWithTypes.put(voidV.getName(), expType);
+            stmts.add(new C0Assign(voidV, new C2Void()));
+            return new C2Program(vars, varsWithTypes, stmts, expType, voidV);
+        } else if (e instanceof R3GlobalValue) {
+            C0Var globV = new C0Var("global_"+String.valueOf(numUniqueVars++));
+            //vars.add(globV);
+            varsWithTypes.put(globV.getName(), expType);
+            stmts.add(new C0Assign(globV, new C2GlobalValue(((R3GlobalValue) e).getName())));
+            return new C2Program(vars, varsWithTypes, stmts, expType, globV);
+        } else if( e instanceof R0VecRef) {
+            C0Var retV = new C0Var("vecRef_"+String.valueOf(numUniqueVars++));
+            //vars.add(retV);
+            varsWithTypes.put(retV.getName(), expType);
+            //then process the first arg recursively
+            C2Program vec = flattenRecursive(((R0VecRef) e).getVec());
+            varsWithTypes.putAll(vec.getVarsWithTypes());
+            stmts.addAll(vec.getStmtList());
+            stmts.add(new C0Assign(retV, vec.getReturnArg()));
+            return new C2Program(vars, varsWithTypes, stmts, expType, retV);
+            
+        } else if (e instanceof R0VecSet) {
+            C0Var retV = new C0Var("vecSet_"+String.valueOf(numUniqueVars++));
+            //vars.add(retV);
+            varsWithTypes.put(retV.getName(), expType);
+            //then process the first and third args recursively
+            
+            C2Program vec = flattenRecursive(((R0VecSet) e).getVec());
+            varsWithTypes.putAll(vec.getVarsWithTypes());
+            stmts.addAll(vec.getStmtList());
+            
+            C2Program newVal = flattenRecursive(((R0VecSet) e).getNewVal());
+            varsWithTypes.putAll(newVal.getVarsWithTypes());
+            stmts.addAll(newVal.getStmtList());
+            
+            stmts.add(new C0Assign(retV, new C2Void()));
+            
+            return new C2Program(vars, varsWithTypes, stmts, expType, retV);
+            
+        }
+        
+        throw new Exception("could not flatten expression with type" + expType.toString());
     }
     
-    public static C1TypedProgram flatten(R2TypedProgram p) {
-        C0Program flat = flatten(new R0Program(p.getExp()));
-        C1TypedProgram r = new C1TypedProgram(flat, p.getType());
-        return r;
-        
-    }
     
-    public static X1TypedProgram select(C1TypedProgram p) {
-        return new X1TypedProgram(select(p.getP()), p.getType());
-    }
     
     // assumptions made by select and assign pass: rax is only register used in select pass
     //this version of select pass assumes that all C0 statements are assignments
-    public static X1Program select(C0Program p) {
+    public static X1Program select(C2Program p) {
         
         List <X1Var> vars = new ArrayList<>();
         List <X1Instr> instrs = new ArrayList<>();
@@ -734,7 +818,7 @@ public class PassMethodsR3 {
 
             } else if(s1 instanceof C0If) {
                 
-                //get statements from if and else and turn those into C0Programs,
+                //get statements from if and else and turn those into C2Programs,
                 //recursively do select on them
                 List <C0Stmt> ifs = ((C0If) s1).getIfStmts();
                 List <C0Stmt> elses = ((C0If) s1).getElseStmts();
@@ -749,27 +833,27 @@ public class PassMethodsR3 {
                 List ifsVarList = new ArrayList(vars);
                 List elsesVarList = new ArrayList(vars);
                 
-                C0Program ifBranch = new C0Program(ifsVarList, ifs, new C0Int(-1));
-                C0Program elseBranch = new C0Program(elsesVarList, elses, new C0Int(-1));
-                X1Program flatIf = select(ifBranch);
-                X1Program flatElse = select(elseBranch);
-                //you have to remove the unused return from both branches
-                flatIf.getInstrList().remove(flatIf.getInstrList().size()-1);
-                flatElse.getInstrList().remove(flatElse.getInstrList().size()-1);
-                
-                ifsVarList.removeAll(vars);
-                elsesVarList.removeAll(vars);
-                vars.addAll(ifsVarList);
-                vars.addAll(elsesVarList);
-                
-                //because the flatten step only has comparison for equality inside
-                //the C0 ifs, you just need to get the first argument
-                C0Arg ifCmp = ((C0If) s1).getCond().getA();
-                
-                instrs.add(new X1If(C0ToX1Arg(ifCmp), 
-                        flatIf.getInstrList(), 
-                        flatElse.getInstrList()));
-                
+//                C2Program ifBranch = new C2Program(ifsVarList, ifs, new C0Int(-1));
+//                C2Program elseBranch = new C2Program(elsesVarList, elses, new C0Int(-1));
+//                X1Program flatIf = select(ifBranch);
+//                X1Program flatElse = select(elseBranch);
+//                //you have to remove the unused return from both branches
+//                flatIf.getInstrList().remove(flatIf.getInstrList().size()-1);
+//                flatElse.getInstrList().remove(flatElse.getInstrList().size()-1);
+//                
+//                ifsVarList.removeAll(vars);
+//                elsesVarList.removeAll(vars);
+//                vars.addAll(ifsVarList);
+//                vars.addAll(elsesVarList);
+//                
+//                //because the flatten step only has comparison for equality inside
+//                //the C0 ifs, you just need to get the first argument
+//                C0Arg ifCmp = ((C0If) s1).getCond().getA();
+//                
+//                instrs.add(new X1If(C0ToX1Arg(ifCmp), 
+//                        flatIf.getInstrList(), 
+//                        flatElse.getInstrList()));
+//                
             }
         }
         X1Arg ret = C0ToX1Arg(p.getReturnArg());
