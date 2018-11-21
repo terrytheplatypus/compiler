@@ -41,9 +41,17 @@ public class ConciseConstructors {
         return new R0LitBool(b);
     } public static R0Not nNot(R0Expression b) {
         return new R0Not(b);
-    } public static R0And nAnd(R0Expression a, R0Expression b) {
-        return new R0And(a, b);
-    } public static R0Gr nGr () {
+    }
+    //should've added this bit earlier so i wouldn't have to keep track of "and" case
+    //in the compiler at all
+    public static R0If nAnd(R0Expression a, R0Expression b) {
+        return nIf(a,b,nLitBool(false));
+    }
+    
+//    public static R0And nAnd(R0Expression a, R0Expression b) {
+//        return new R0And(a, b);
+//    }
+    public static R0Gr nGr () {
         return new R0Gr();
     } public static R0GrEq nGrEq () {
         return new R0GrEq();

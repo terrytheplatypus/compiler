@@ -5,8 +5,10 @@
  */
 package X1;
 
+import R0.R3Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -14,11 +16,25 @@ import java.util.List;
  */
 public class X1Program {
     private List <X1Var> varList;
+    private Map <String,R3Type> varsWithTypes;
     private List<X1Instr> instrList;
     private X1Arg retArg;
     private List < List <X1Var>> liveAfters;
     private AdjacencyMap adjMap;
+    private R3Type type;
 
+    public X1Program(List<X1Var> varList, Map<String, R3Type> varsWithTypes, List<X1Instr> instrList, X1Arg retArg, List<List<X1Var>> liveAfters, AdjacencyMap adjMap, R3Type type) {
+        this.varList = varList;
+        this.varsWithTypes = varsWithTypes;
+        this.instrList = instrList;
+        this.retArg = retArg;
+        this.liveAfters = liveAfters;
+        this.adjMap = adjMap;
+        this.type = type;
+    }
+
+    
+    
     public X1Program(List<X1Var> varList, List<X1Instr> instrList, X1Arg retArg) {
         this.varList = varList;
         this.instrList = instrList;
@@ -90,5 +106,15 @@ public class X1Program {
             System.out.print("\n");
         }
     }
+
+    public R3Type getType() {
+        return type;
+    }
+
+    public Map<String, R3Type> getVarsWithTypes() {
+        return varsWithTypes;
+    }
+    
+    
     
 }

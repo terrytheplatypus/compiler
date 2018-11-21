@@ -16,6 +16,14 @@ public class R3TypedExpr implements R0Expression{
     private R0Expression e;
     private R3Type t;
 
+    
+    public String getVarName() throws Exception {
+        if (e instanceof R0Var) {
+            return e.toString();
+        }
+        else throw new Exception("tried to get var name of non-var expr");
+    }
+    
     public R0Expression getE() {
         return e;
     }

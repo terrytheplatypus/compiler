@@ -121,7 +121,8 @@ public class PassMethodsR3 {
             varNameList.put(x.getName(), x.getName()+"_"+String.valueOf(numUniqueVars++));
             String newVarName = varNameList.get(x.getName());
             R0Var newVar = nVar(newVarName);
-            return new R3TypedExpr( nLet(newVar, 
+            R3TypedExpr newVar2 = new R3TypedExpr(newVar, e.getType());
+            return new R3TypedExpr( nLet(newVar2, 
                     uniquifyRecursive( (R3TypedExpr) exps.get(1), varNameList),
                     uniquifyRecursive( (R3TypedExpr) exps.get(2), varNameList)),e.getType());
         }
@@ -218,7 +219,7 @@ public class PassMethodsR3 {
         
         else if(e2 instanceof R0Let) {
             List <R0Expression> exps = e.getChildren();
-            return new R3TypedExpr( nLet((R0Var)exps.get(0), 
+            return new R3TypedExpr( nLet(exps.get(0), 
                     exposeAllocRecursive( (R3TypedExpr) exps.get(1)),
                     exposeAllocRecursive( (R3TypedExpr) exps.get(2))),e.getType());
         }
@@ -432,7 +433,7 @@ public class PassMethodsR3 {
            e = ((R3TypedExpr) e1).getE();
            expType = ((R3TypedExpr) e1).getType();
         }
-        else throw new Exception("Non-typed expression used in flatten");
+        else if(e1 instanceof R0Var) throw new Exception("untyped var used in flatten:");
         
         //cases:
         //int: F(int) = < null, null, int>
@@ -487,7 +488,21 @@ public class PassMethodsR3 {
         }
         //F(let x e1 e2) = <vs1 ++ vs2 ++ {x}, ss ++ (:= x ea1) ++ ss2, ea2>
         else if(e instanceof R0Let) {
-            C0Var x = new C0Var( (R0Var) e.getChildren().get(0));
+            //this is stupid line of code but it's just getting the first element of the
+            //let and getting its varname.
+            //C0Var x = new C0Var( ((R3TypedExpr) e.getChildren().get(0)).getVarName());
+            R0Expression varExp = e.getChildren().get(0);
+            String varName;
+            if(varExp instanceof R3TypedExpr) {
+                varName = ((R3TypedExpr) varExp).getVarName();
+            } else if(varExp instanceof R0Var) {
+                varName = ((R0Var) varExp).getName();
+            } else {
+                System.out.println();
+                throw new Exception("failed to convert var argument in let expression for flatten,"
+                        + "type :" + varExp.getClass());
+            }
+            C0Var x = new C0Var(varName);
             C2Program fe1 = flattenRecursive(e.getChildren().get(1));
             C2Program fe2 = flattenRecursive(e.getChildren().get(2));
             
@@ -507,46 +522,8 @@ public class PassMethodsR3 {
         }
         
         //adding if/else stuff
+        //the "and" case is removed because it's reduced to an if in the construction
         
-        //here, AND is broken down into if statement
-        //this makes writing the rest of the compiler less error-prone
-        //because i have less cases to keep track of
-        if(e instanceof R0And) {
-            
-            C0Var av = new C0Var("and_"+String.valueOf(numUniqueVars++));
-            arg = av;
-            varsWithTypes.put(av.getName(), expType);
-            C2Program fe1 = flattenRecursive(e.getChildren().get(0));
-            C2Program fe2 = flattenRecursive(e.getChildren().get(1));
-            vars.addAll(fe1.getVarList());
-            varsWithTypes.putAll(fe1.getVarsWithTypes());
-            vars.addAll(fe2.getVarList());
-            varsWithTypes.putAll(fe2.getVarsWithTypes());
-            
-            stmts.addAll(fe1.getStmtList());
-            stmts.addAll(fe2.getStmtList());
-//            stmts.add(new C0Assign(av, 
-//                    new C0And(fe1.getReturnArg(),fe2.getReturnArg())));
-            //now u have to make a comparison between the first arg and second
-            //if first is true, you return result of second, else you return false
-            
-           C0Cmp checkFirst = new C0Cmp(EQ, 
-                        fe1.getReturnArg() , 
-                        new C0LitBool(true));
-           
-           C0Stmt checkSecond = new C0Assign(av, fe2.getReturnArg());
-           C0Stmt quickFail = new C0Assign(av,new C0LitBool(false));
-           List <C0Stmt> cond2 = new ArrayList<>();
-           List <C0Stmt> shortCircuitFalse = new ArrayList<>();
-           cond2.add(checkSecond);
-           shortCircuitFalse.add(quickFail);
-           
-           C0If deSugaredAnd = new C0If(checkFirst,cond2, shortCircuitFalse);
-            stmts.add(deSugaredAnd);
-            
-            return new C2Program(vars, varsWithTypes, stmts, expType, arg);
-            
-        }
         else if(e instanceof R0If) {
             
             boolean ifOnly = false;
@@ -561,7 +538,8 @@ public class PassMethodsR3 {
             // (eq var TRUE)
             
             C0Cmp finalCmp = null;
-            R0Expression cond1 = e.getChildren().get(0);
+            R0Expression cond1 = ( (R3TypedExpr) e.getChildren().get(0)).getE();
+            
             if(!(cond1 instanceof R0Cmp)) {
                 if(cond1 instanceof R0LitBool) {
                    //a small optimization could added here:
@@ -748,7 +726,7 @@ public class PassMethodsR3 {
             return new C2Program(vars, varsWithTypes, stmts, expType, retV);
             
         }
-        
+        System.err.println("could not flatten expression with type" + expType.toString());
         throw new Exception("could not flatten expression with type" + expType.toString());
     }
     

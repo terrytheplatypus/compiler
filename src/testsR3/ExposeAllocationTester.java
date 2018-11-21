@@ -24,7 +24,7 @@ public class ExposeAllocationTester {
     for(R0Test t:testList) {
             System.out.println(n++);
         try {
-            if(n < 13) continue;
+            //if(n < 13) continue;
             System.out.println("Expected value: "+t.getExpectedVal());
             String result = R3Interpreter.R3Interpret(t.getProg()).stringify();
             
