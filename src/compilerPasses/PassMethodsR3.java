@@ -45,6 +45,8 @@ import X0.X0label;
 import X0.X0set;
 import X0.X0xorq;
 import X1.X1ByteReg;
+import X1.X1Deref;
+import X1.X1GlobalValue;
 import X1.X1If;
 import X1.X1TypedProgram;
 import X1.X1set;
@@ -732,19 +734,27 @@ public class PassMethodsR3 {
     
     
     
-    // assumptions made by select and assign pass: rax is only register used in select pass
-    //this version of select pass assumes that all C0 statements are assignments
-    public static X1Program select(C2Program p) {
+    /********** Assumptions:    ************/
+    /*
+    there's no reason to include vars list because you have a map with
+    the types
+    */
+    public static X1Program select(C2Program p) throws Exception {
         
         List <X1Var> vars = new ArrayList<>();
         List <X1Instr> instrs = new ArrayList<>();
-         
+        Map <String, R3Type> varsWithTypes = p.getVarsWithTypes();
+        
+        
+//        for(C0Var v:p.getVarList()) {
+//            vars.add(new X1Var(v.getName()));
+//        }
         
         for(C0Stmt s1:p.getStmtList()) {
             if(s1 instanceof C0Assign) {
                 C0Assign s = (C0Assign) s1;
                 X1Var x = new X1Var(s.getX().getName());
-                vars.add(x);
+                //vars.add(x);
                 C0Expression e = s.getExp();
                 if(e instanceof C0Arg) {
 
@@ -793,6 +803,43 @@ public class PassMethodsR3 {
                 //i could do the same with Not tbh, except it was already suggested to
                 //use xorq
                 
+                /***** Add garbage collection stuff ******/
+                else if(e instanceof C2Allocate) {
+                    
+                } else if(e instanceof C2GlobalValue) {
+                    instrs.add(new X1movq(new X1GlobalValue(((C2GlobalValue) e).getName()), x));
+                } else if (e instanceof C2VecRef) {
+                    //instrs.add(e)
+                    //first arg is a variable
+                    C0Arg a =  ((C2VecRef) e).getVec();
+                    if (!(a instanceof C0Var)) {
+                        throw new Exception("select step: 1st arg is assumed to be var," +
+                                "it was "+a.getClass());
+                    }
+                    C0Var v = (C0Var) a;
+                    instrs.add(new X1movq(new X1Var(v.getName()), new X1Reg("rax")));
+                    int n = ((C2VecRef) e).getIndex().getVal();
+                    instrs.add(new X1movq(new X1Deref("rax", 8*n+1), x));
+                    
+                } else if(e instanceof C2VecSet) {
+                    //first arg is a variable
+                    C0Arg a =  ((C2VecSet) e).getVec();
+                    if (!(a instanceof C0Var)) {
+                        throw new Exception("select step: 1st arg is assumed to be var," +
+                                "it was "+a.getClass());
+                    }
+                    C0Var v = (C0Var) a;
+                    instrs.add(new X1movq(new X1Var(v.getName()), new X1Reg("rax")));
+                    int n = ((C2VecRef) e).getIndex().getVal();
+                    instrs.add(new X1movq(C0ToX1Arg(((C2VecSet) e).getNewVal()),
+                            new X1Deref("rax", 8*n+1)));
+                    instrs.add(new X1movq(new X1Int(0), x));
+                    
+                    
+                } else if(e instanceof C2Void) {
+                    instrs.add(new X1movq(new X1Int(0), x));
+                }
+                
 
             } else if(s1 instanceof C0If) {
                 
@@ -808,30 +855,30 @@ public class PassMethodsR3 {
                 //the temporary C0 program is given arbitrary return argument that's not actually
                 //in the final program
                 //2 copies because otherwise it uses it by reference
-                List ifsVarList = new ArrayList(vars);
-                List elsesVarList = new ArrayList(vars);
                 
-//                C2Program ifBranch = new C2Program(ifsVarList, ifs, new C0Int(-1));
-//                C2Program elseBranch = new C2Program(elsesVarList, elses, new C0Int(-1));
-//                X1Program flatIf = select(ifBranch);
-//                X1Program flatElse = select(elseBranch);
-//                //you have to remove the unused return from both branches
-//                flatIf.getInstrList().remove(flatIf.getInstrList().size()-1);
-//                flatElse.getInstrList().remove(flatElse.getInstrList().size()-1);
-//                
-//                ifsVarList.removeAll(vars);
-//                elsesVarList.removeAll(vars);
-//                vars.addAll(ifsVarList);
-//                vars.addAll(elsesVarList);
-//                
-//                //because the flatten step only has comparison for equality inside
-//                //the C0 ifs, you just need to get the first argument
-//                C0Arg ifCmp = ((C0If) s1).getCond().getA();
-//                
-//                instrs.add(new X1If(C0ToX1Arg(ifCmp), 
-//                        flatIf.getInstrList(), 
-//                        flatElse.getInstrList()));
-//                
+                List branchesVarList = new ArrayList();
+                Map <String, R3Type> branchesVarMap = new HashMap<>();
+                
+                C2Program ifBranch = new C2Program(ifs);
+                C2Program elseBranch = new C2Program(elses);
+                X1Program flatIf = select(ifBranch);
+                X1Program flatElse = select(elseBranch);
+                //you have to remove the unused return from both branches
+                flatIf.getInstrList().remove(flatIf.getInstrList().size()-1);
+                flatElse.getInstrList().remove(flatElse.getInstrList().size()-1);
+                
+                
+                
+                //because the flatten step only has comparison for equality inside
+                //the C0 ifs, you just need to get the first argument
+                C0Arg ifCmp = ((C0If) s1).getCond().getA();
+                
+                instrs.add(new X1If(C0ToX1Arg(ifCmp),
+                        flatIf.getInstrList(),
+                        flatElse.getInstrList()));
+                
+            } else if(s1 instanceof C2Collect) {
+                
             }
         }
         X1Arg ret = C0ToX1Arg(p.getReturnArg());
@@ -1355,12 +1402,12 @@ public class PassMethodsR3 {
                     allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
                 } else  {
                     //allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
-                    allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color)*8));
+                    allocMap.put(curr.getKey(), new X0Deref("rsp", (color)*8));
                 }
             } else if(curr.getKey() instanceof X1Reg) {
                 String regName = curr.getKey().stringify();
                 int regIndex = Arrays.asList(regNames).lastIndexOf(regName);
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (numColors + regIndex)*8));
+                allocMap.put(curr.getKey(), new X0Deref("rsp", (numColors + regIndex)*8));
             }
         }
         
@@ -1583,7 +1630,7 @@ public class PassMethodsR3 {
             String [] splitName = ((X1Var) a).getName().split("_");
             int len = splitName.length;
             int offset = Integer.valueOf(splitName[len-1]);
-            return new X0RegWithOffset("rsp", offset*8);
+            return new X0Deref("rsp", offset*8);
         } else if(a instanceof X1Reg) {
             //in the previous step (at least in first iteration), 
             //the only register used is rax
@@ -1605,7 +1652,7 @@ public class PassMethodsR3 {
             int len = splitName.length;
             int offset = Integer.valueOf(splitName[len-1]);
             if(offset >= regNames.length) {
-                return new X0RegWithOffset("rsp", (offset - regNames.length)*8);
+                return new X0Deref("rsp", (offset - regNames.length)*8);
             } else {
                 return new X0Reg(regNames[offset]);
             }
@@ -1648,13 +1695,13 @@ public class PassMethodsR3 {
             //right now only addq and movq need to be checked
             if(c instanceof X0addq) {
                X0addq m = (X0addq) c;
-                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset) {
+                if(m.getA() instanceof X0Deref && m.getB() instanceof X0Deref) {
                     newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
                     newInstrs.add(new X0addq(new X0Reg("rax"),m.getB() ));
                 } else newInstrs.add(c);
             } else if(c instanceof X0movq) {
                 X0movq m = (X0movq) c;
-                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset
+                if(m.getA() instanceof X0Deref && m.getB() instanceof X0Deref
                         && !m.getA().equals(m.getB())) {
                     newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
                     newInstrs.add(new X0movq(new X0Reg("rax"),m.getB() ));
@@ -1781,11 +1828,11 @@ public class PassMethodsR3 {
             return "$"+String.valueOf(((X0Int) z).getVal());
         } else if (z instanceof X0Reg) {
             return "%"+ ((X0Reg) z).getName();
-        } else if (z instanceof X0RegWithOffset) {
+        } else if (z instanceof X0Deref) {
             
-            String offset = String.valueOf(((X0RegWithOffset) z).getOffset());
+            String offset = String.valueOf(((X0Deref) z).getOffset());
             
-            return offset + "(%"+((X0RegWithOffset) z).getName()
+            return offset + "(%"+((X0Deref) z).getName()
                      +")";
         } else if(z instanceof X0ByteReg) {
             return "%" + ((X0ByteReg) z).getName();

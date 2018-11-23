@@ -37,6 +37,11 @@ public class C2Program {
         this.returnArg = returnArg;
         this.progType = progType;
     }
+    
+    public C2Program (List<C0Stmt> stmtList) {
+        this.stmtList = stmtList;
+    }
+    
 
     
 

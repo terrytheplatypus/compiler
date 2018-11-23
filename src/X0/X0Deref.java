@@ -9,11 +9,11 @@ package X0;
  *
  * @author david
  */
-public class X0RegWithOffset implements X0Arg{
+public class X0Deref implements X0Arg{
     private String name;
     private int offset;
 
-    public X0RegWithOffset(String name, int offset) {
+    public X0Deref(String name, int offset) {
         this.name = name;
         this.offset = offset;
     }

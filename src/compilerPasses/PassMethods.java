@@ -1020,12 +1020,12 @@ public class PassMethods {
                     allocMap.put(curr.getKey(), new X0Reg(regNames[color]));
                 } else  {
                     //allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color- regNames.length)*8));
-                    allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (color)*8));
+                    allocMap.put(curr.getKey(), new X0Deref("rsp", (color)*8));
                 }
             } else if(curr.getKey() instanceof X1Reg) {
                 String regName = curr.getKey().stringify();
                 int regIndex = Arrays.asList(regNames).lastIndexOf(regName);
-                allocMap.put(curr.getKey(), new X0RegWithOffset("rsp", (numColors + regIndex)*8));
+                allocMap.put(curr.getKey(), new X0Deref("rsp", (numColors + regIndex)*8));
             }
         }
         
@@ -1290,7 +1290,7 @@ public class PassMethods {
                 //if var
                 else if(rArg instanceof X1Var) {
                     //int index = 8*vars.lastIndexOf(rArg) /*+ 8*numUniqueVars*/;
-                    X0RegWithOffset retReg = (X0RegWithOffset) X1toX0(rArg);
+                    X0Deref retReg = (X0Deref) X1toX0(rArg);
                     newInstrs.add(new X0movq(retReg, new X0Reg("rax")));
                     
                 }
@@ -1394,7 +1394,7 @@ public class PassMethods {
             String [] splitName = ((X1Var) a).getName().split("_");
             int len = splitName.length;
             int offset = Integer.valueOf(splitName[len-1]);
-            return new X0RegWithOffset("rsp", offset*8);
+            return new X0Deref("rsp", offset*8);
         } else if(a instanceof X1Reg) {
             //in the previous step (at least in first iteration), 
             //the only register used is rax
@@ -1416,7 +1416,7 @@ public class PassMethods {
             int len = splitName.length;
             int offset = Integer.valueOf(splitName[len-1]);
             if(offset >= regNames.length) {
-                return new X0RegWithOffset("rsp", (offset - regNames.length)*8);
+                return new X0Deref("rsp", (offset - regNames.length)*8);
             } else {
                 return new X0Reg(regNames[offset]);
             }
@@ -1459,13 +1459,13 @@ public class PassMethods {
             //right now only addq and movq need to be checked
             if(c instanceof X0addq) {
                X0addq m = (X0addq) c;
-                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset) {
+                if(m.getA() instanceof X0Deref && m.getB() instanceof X0Deref) {
                     newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
                     newInstrs.add(new X0addq(new X0Reg("rax"),m.getB() ));
                 } else newInstrs.add(c);
             } else if(c instanceof X0movq) {
                 X0movq m = (X0movq) c;
-                if(m.getA() instanceof X0RegWithOffset && m.getB() instanceof X0RegWithOffset
+                if(m.getA() instanceof X0Deref && m.getB() instanceof X0Deref
                         && !m.getA().equals(m.getB())) {
                     newInstrs.add(new X0movq(m.getA(), new X0Reg("rax")));
                     newInstrs.add(new X0movq(new X0Reg("rax"),m.getB() ));
@@ -1617,11 +1617,11 @@ public class PassMethods {
             return "$"+String.valueOf(((X0Int) z).getVal());
         } else if (z instanceof X0Reg) {
             return "%"+ ((X0Reg) z).getName();
-        } else if (z instanceof X0RegWithOffset) {
+        } else if (z instanceof X0Deref) {
             
-            String offset = String.valueOf(((X0RegWithOffset) z).getOffset());
+            String offset = String.valueOf(((X0Deref) z).getOffset());
             
-            return offset + "(%"+((X0RegWithOffset) z).getName()
+            return offset + "(%"+((X0Deref) z).getName()
                      +")";
         } else if(z instanceof X0ByteReg) {
             return "%" + ((X0ByteReg) z).getName();
