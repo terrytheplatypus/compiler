@@ -51,6 +51,7 @@ import X1.X1If;
 import X1.X1TypedProgram;
 import X1.X1set;
 import X1.X1cmpq;
+import X1.X1leaq;
 import X1.X1movzbq;
 import static X1.X1set.R0CmpOpToCC;
 import X1.X1set.conditionCode;
@@ -744,6 +745,23 @@ public class PassMethodsR3 {
         List <X1Var> vars = new ArrayList<>();
         List <X1Instr> instrs = new ArrayList<>();
         Map <String, R3Type> varsWithTypes = p.getVarsWithTypes();
+        Map <R3Type, String> typeNames = new HashMap<>();
+        
+        
+        
+        //first the select function should just map the types to names.
+        //that would be part of the program data type
+        //it attaches the unique label at the end just in case
+        
+        typeNames.put(R3Int(), "int_"+numUniqueVars);
+        typeNames.put(R3Bool(), "bool_"+numUniqueVars);
+        typeNames.put(R3Void(), "void_"+numUniqueVars);
+        
+        for(Map.Entry <String, R3Type> curr:varsWithTypes.entrySet()) {
+            if(curr.getValue().isVec()){
+                typeNames.putIfAbsent(curr.getValue(), "vec_"+numUniqueVars);
+            }
+        }
         
         
 //        for(C0Var v:p.getVarList()) {
@@ -805,6 +823,20 @@ public class PassMethodsR3 {
                 
                 /***** Add garbage collection stuff ******/
                 else if(e instanceof C2Allocate) {
+                    instrs.add(new X1movq(new X1GlobalValue("free_ptr"), x));
+                    int len = ((C2Allocate) e).getLen().getVal();
+                    instrs.add(new X1addq(new X1Int(8*(len+1)), x));
+                    instrs.add(new X1movq(x, new X1Reg("rax")));
+                    
+                    //get type name
+                    //of course, leaq with labels also has to use (%rip) as offset but that
+                    //has to be added in print phase
+                    
+                    instrs.add(
+                            new X1leaq(
+                                new X1GlobalValue(typeNames.get(((C2Allocate) e).getType()))
+                                ,new X1Reg("rcx")));
+                    instrs.add(new X1movq(new X1Reg("rcx"), new X1Reg("rax")));
                     
                 } else if(e instanceof C2GlobalValue) {
                     instrs.add(new X1movq(new X1GlobalValue(((C2GlobalValue) e).getName()), x));
@@ -878,7 +910,8 @@ public class PassMethodsR3 {
                         flatElse.getInstrList()));
                 
             } else if(s1 instanceof C2Collect) {
-                
+                //because i'm not going to implement garbage collection for now, this just does
+                //nothing
             }
         }
         X1Arg ret = C0ToX1Arg(p.getReturnArg());

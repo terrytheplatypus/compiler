@@ -9,6 +9,6 @@ package X0;
  *
  * @author tennisers
  */
-public class X0leaq {
+public class X0leaq implements X0Instr {
     
 }
